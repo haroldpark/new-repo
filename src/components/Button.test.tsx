@@ -13,12 +13,11 @@ import "@testing-library/jest-dom";
 import { Button } from "./Button";
 
 test("loads and displays greeting", async () => {
-  // ARRANGE
-  render(<Button variant="destructive">Delete</Button>);
-
-  // ACT
-
-  // ASSERT
+  render(
+    <Button data-testid="test-button" variant="destructive">
+      Delete
+    </Button>
+  );
   expect(screen.getByText("Delete")).toBeDefined();
-  // expect(screen.getByRole("button")).toBeDisabled();
+  expect(screen.getByRole("button")).toHaveClass("bg-destructive");
 });
