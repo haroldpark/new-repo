@@ -1,4 +1,5 @@
-import '!style-loader!css-loader!postcss-loader!tailwindcss/tailwind.css';
+// import '!style-loader!css-loader!postcss-loader!tailwindcss/tailwind.css';
+import '@/index.css';
 import type { Preview } from '@storybook/react-vite'
 
 const preview: Preview = {
