@@ -9,6 +9,7 @@ export interface ButtonProps extends React.ComponentProps<"button"> {
     | "ghost"
     | "link";
   size?: "default" | "sm" | "lg" | "icon";
+  onClick?: () => void;
 }
 
 export function Button({
