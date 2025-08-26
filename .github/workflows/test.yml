@@ -1,5 +1,12 @@
 name: Build and Test React Application
 
+# What's possible?
+# 1. CI/CD - Build, Test, and Deploy
+# 2. Github automation - Auto-labeling, PR checks/workflows, release management
+# 3. Notifications - Discord/slack/telegram/email/sms/push notifications
+# 4. Others - compress images, manage artifacts, conditional steps (only if certain files are changed),
+# manual approvals (pause workflows and require human confirmation)
+
 on:
   push:
     branches: [main]
