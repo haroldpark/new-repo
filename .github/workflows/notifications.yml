@@ -1,0 +1,154 @@
+name: Notifications
+
+on:
+  workflow_run:
+    workflows:
+      [
+        'CI/CD - Build, Test, and Deploy React Application',
+        'Auto Format Code with Prettier',
+      ]
+    types:
+      - completed
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+    types: [opened, closed, reopened]
+  release:
+    types: [published]
+
+jobs:
+  notify:
+    runs-on: ubuntu-latest
+    if: always()
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Determine notification content
+        id: content
+        run: |
+          # Set default values
+          STATUS="unknown"
+          COLOR="0x808080"
+          EMOJI="ℹ️"
+
+          # Determine status and content based on event type
+          if [ "${{ github.event_name }}" = "workflow_run" ]; then
+            if [ "${{ github.event.workflow_run.conclusion }}" = "success" ]; then
+              STATUS="success"
+              COLOR="0x00ff00"
+              EMOJI="✅"
+              TITLE="Workflow Completed Successfully"
+              MESSAGE="The ${{ github.event.workflow_run.name }} workflow has completed successfully."
+            elif [ "${{ github.event.workflow_run.conclusion }}" = "failure" ]; then
+              STATUS="failure"
+              COLOR="0xff0000"
+              EMOJI="❌"
+              TITLE="Workflow Failed"
+              MESSAGE="The ${{ github.event.workflow_run.name }} workflow has failed. Please check the logs."
+            fi
+          elif [ "${{ github.event_name }}" = "push" ]; then
+            STATUS="info"
+            COLOR="0x0099ff"
+            EMOJI="🚀"
+            TITLE="New Push to Main"
+            MESSAGE="New commits pushed to main branch by ${{ github.actor }}."
+          elif [ "${{ github.event_name }}" = "pull_request" ]; then
+            if [ "${{ github.event.action }}" = "opened" ]; then
+              STATUS="info"
+              COLOR="0xffaa00"
+              EMOJI="🔄"
+              TITLE="New Pull Request"
+              MESSAGE="PR #${{ github.event.number }}: ${{ github.event.pull_request.title }} opened by ${{ github.actor }}."
+            elif [ "${{ github.event.action }}" = "closed" ] && [ "${{ github.event.pull_request.merged }}" = "true" ]; then
+              STATUS="success"
+              COLOR="0x9932cc"
+              EMOJI="🎉"
+              TITLE="Pull Request Merged"
+              MESSAGE="PR #${{ github.event.number }}: ${{ github.event.pull_request.title }} has been merged!"
+            fi
+          elif [ "${{ github.event_name }}" = "release" ]; then
+            STATUS="success"
+            COLOR="0x00ff00"
+            EMOJI="🎊"
+            TITLE="New Release Published"
+            MESSAGE="Release ${{ github.event.release.tag_name }} has been published!"
+          fi
+
+          echo "status=$STATUS" >> $GITHUB_OUTPUT
+          echo "color=$COLOR" >> $GITHUB_OUTPUT
+          echo "emoji=$EMOJI" >> $GITHUB_OUTPUT
+          echo "title=$TITLE" >> $GITHUB_OUTPUT
+          echo "message=$MESSAGE" >> $GITHUB_OUTPUT
+
+      - name: Send Discord notification
+        if: steps.content.outputs.status != 'unknown'
+        uses: Ilshidur/action-discord@master
+        env:
+          DISCORD_WEBHOOK: ${{ secrets.DISCORD_WEBHOOK }}
+        with:
+          args: |
+            ${{ steps.content.outputs.emoji }} **${{ steps.content.outputs.title }}**
+
+            ${{ steps.content.outputs.message }}
+
+            **Repository:** ${{ github.repository }}
+            **Branch:** ${{ github.ref_name }}
+            **Commit:** ${{ github.sha }}
+            **Actor:** ${{ github.actor }}
+
+            [View Details](${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }})
+
+      # - name: Send email notification
+      #   if: steps.content.outputs.status != 'unknown'
+      #   uses: dawidd6/action-send-mail@v3
+      #   with:
+      #     server_address: smtp.gmail.com
+      #     server_port: 587
+      #     username: ${{ secrets.EMAIL_USERNAME }}
+      #     password: ${{ secrets.EMAIL_PASSWORD }}
+      #     subject: '${{ steps.content.outputs.emoji }} ${{ github.repository }} - ${{ steps.content.outputs.title }}'
+      #     to: hyungkip@gmail.com
+      #     from: ${{ secrets.EMAIL_USERNAME }}
+      #     html_body: |
+      #       <h2>${{ steps.content.outputs.emoji }} ${{ steps.content.outputs.title }}</h2>
+
+      #       <p><strong>Message:</strong> ${{ steps.content.outputs.message }}</p>
+
+      #       <h3>Details:</h3>
+      #       <ul>
+      #         <li><strong>Repository:</strong> ${{ github.repository }}</li>
+      #         <li><strong>Branch:</strong> ${{ github.ref_name }}</li>
+      #         <li><strong>Commit:</strong> <code>${{ github.sha }}</code></li>
+      #         <li><strong>Actor:</strong> ${{ github.actor }}</li>
+      #         <li><strong>Event:</strong> ${{ github.event_name }}</li>
+      #         <li><strong>Timestamp:</strong> ${{ github.event.head_commit.timestamp }}</li>
+      #       </ul>
+
+      #       <p><a href="${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}" style="background-color: #0366d6; color: white; padding: 10px 15px; text-decoration: none; border-radius: 5px;">View Details on GitHub</a></p>
+
+      #       <hr>
+      #       <p><small>This is an automated notification from GitHub Actions.</small></p>
+
+  # Optional: Send notifications only on failures
+  # notify-failures-only:
+  #   runs-on: ubuntu-latest
+  #   if: failure()
+
+  #   steps:
+  #     - name: Send urgent failure notification
+  #       uses: Ilshidur/action-discord@master
+  #       env:
+  #         DISCORD_WEBHOOK: ${{ secrets.DISCORD_WEBHOOK }}
+  #       with:
+  #         args: |
+  #           🚨 **URGENT: Workflow Failure** 🚨
+
+  #           A critical workflow has failed in ${{ github.repository }}!
+
+  #           **Branch:** ${{ github.ref_name }}
+  #           **Actor:** ${{ github.actor }}
+
+  #           Please investigate immediately: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
