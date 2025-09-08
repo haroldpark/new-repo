@@ -57,7 +57,7 @@ jobs:
           npx @scalar/cli export openapi.json --output docs/
 
       - name: Upload documentation artifacts
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: api-docs
           path: docs/
