@@ -12,7 +12,8 @@
     "prepare": "husky",
     "storybook": "storybook dev -p 6006",
     "build-storybook": "storybook build",
-    "test-storybook": "vitest --project=storybook"
+    "test-storybook": "vitest --project=storybook",
+    "blah": "blah blah"
   },
   "dependencies": {
     "@radix-ui/react-slot": "^1.2.3",
