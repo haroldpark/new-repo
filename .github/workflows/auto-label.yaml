@@ -3,17 +3,14 @@
 # - Totals line changes across files and applies a size label: size/s, size/m, size/l, or size/xl.
 
 # 2. Title/body labeling (PRs)
-# - Parses PR title/body for conventional-commit keywords and other terms to add these labels:
-# - Type: type/feature, type/bugfix, type/docs, type/refactor, type/test, type/chore, type/performance
-# - Priority: priority/high, priority/medium, priority/normal
-# - Status: status/wip, breaking-change
+# - Parses PR title/body for conventional-commit keywords to add labels
 
 # 3. Issue content labeling
-# Parses issue title/body for keywords and adds: bug, enhancement, question, documentation, plus priority/component labels (e.g., frontend, backend, database) when matched.
+# Parses issue title/body for keywords and adds labels
 
 # 4. Needs-review
 # When a PR is opened, the workflow runs a gh pr edit … --add-label "needs-review" to mark it for review.
-#BLAH
+
 name: Auto-Labeling
 
 on:
@@ -105,13 +102,13 @@ jobs:
             const labels = [];
 
             // Type labels based on conventional commits or keywords
-            if (/^feat(\(.*\))?:|feature|add/i.test(title)) labels.push('type/feature');
-            else if (/^fix(\(.*\))?:|bug|hotfix/i.test(title)) labels.push('type/bugfix');
-            else if (/^docs(\(.*\))?:|documentation/i.test(title)) labels.push('type/docs');
-            else if (/^refactor(\(.*\))?:|cleanup|improve/i.test(title)) labels.push('type/refactor');
-            else if (/^test(\(.*\))?:|testing/i.test(title)) labels.push('type/test');
-            else if (/^chore(\(.*\))?:|maintenance/i.test(title)) labels.push('type/chore');
-            else if (/^perf(\(.*\))?:|performance/i.test(title)) labels.push('type/performance');
+            if (/^feat(\(.*\))?:|feature|add/i.test(title)) labels.push('feature');
+            else if (/^fix(\(.*\))?:|bug|hotfix/i.test(title)) labels.push('bugfix');
+            else if (/^docs(\(.*\))?:|documentation/i.test(title)) labels.push('docs');
+            else if (/^refactor(\(.*\))?:|cleanup|improve/i.test(title)) labels.push('refactor');
+            else if (/^test(\(.*\))?:|testing/i.test(title)) labels.push('tests');
+            else if (/^chore(\(.*\))?:|maintenance/i.test(title)) labels.push('chore');
+            else if (/^perf(\(.*\))?:|performance/i.test(title)) labels.push('performance');
 
             // Priority labels
             if (/urgent|critical|hotfix|p0/i.test(content)) labels.push('priority/high');
@@ -148,7 +145,7 @@ jobs:
             if (/bug|error|broken|crash|fail/i.test(content)) labels.push('bug');
             else if (/feature|enhancement|improve|add/i.test(content)) labels.push('enhancement');
             else if (/question|help|how to|usage/i.test(content)) labels.push('question');
-            else if (/documentation|docs|readme/i.test(content)) labels.push('documentation');
+            else if (/documentation|docs|readme/i.test(content)) labels.push('docs');
 
             // Priority labels for issues
             if (/urgent|critical|severe|p0/i.test(content)) labels.push('priority/high');
