@@ -1,0 +1,108 @@
+name: Merge Conflict Check
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened]
+
+jobs:
+  if: false
+  check-merge-conflicts:
+    runs-on: ubuntu-latest
+    permissions:
+      pull-requests: write
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Check for merge conflicts (robust)
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const maxAttempts = 6;
+            const delayMs = 2000;
+            let pr;
+            for (let i = 0; i < maxAttempts; i++) {
+              pr = (await github.rest.pulls.get({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                pull_number: context.issue.number,
+              })).data;
+              if (pr.mergeable !== null) break;
+              await new Promise(r => setTimeout(r, delayMs));
+            }
+
+            if (pr.mergeable === false) {
+              await github.rest.issues.addLabels({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: context.issue.number,
+                labels: ['merge-conflict']
+              });
+              await github.rest.issues.createComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: context.issue.number,
+                body: '🚨 **Merge Conflict Detected** 🚨\n\nThis PR has merge conflicts...'
+              });
+            } else {
+              // remove label if exists
+              try {
+                await github.rest.issues.removeLabel({
+                  owner: context.repo.owner,
+                  repo: context.repo.repo,
+                  issue_number: context.issue.number,
+                  name: 'merge-conflict'
+                });
+              } catch (e) { /* ignore if missing */ }
+            }
+
+# name: Merge Conflict Check
+
+# on:
+#   pull_request:
+#     types: [opened, synchronize, reopened]
+
+# jobs:
+#   check-merge-conflicts:
+#     runs-on: ubuntu-latest
+#     if: github.event.action == 'synchronize'
+#     permissions:
+#       pull-requests: write
+#     steps:
+#       - name: Check for merge conflicts
+#         uses: actions/github-script@v7
+#         with:
+#           script: |
+#             const { data: pr } = await github.rest.pulls.get({
+#               owner: context.repo.owner,
+#               repo: context.repo.repo,
+#               pull_number: context.issue.number,
+#             });
+
+#             if (!pr.mergeable) {
+#               await github.rest.issues.addLabels({
+#                 owner: context.repo.owner,
+#                 repo: context.repo.repo,
+#                 issue_number: context.issue.number,
+#                 labels: ['merge-conflict']
+#               });
+
+#               await github.rest.issues.createComment({
+#                 owner: context.repo.owner,
+#                 repo: context.repo.repo,
+#                 issue_number: context.issue.number,
+#                 body: '🚨 **Merge Conflict Detected** 🚨\n\nThis PR has merge conflicts that need to be resolved before it can be merged.\n\nTo resolve:\n1. `git checkout main && git pull`\n2. `git checkout your-branch`\n3. `git merge main`\n4. Resolve conflicts and commit\n5. `git push`'
+#               });
+#             } else {
+#               // Remove conflict label if it exists
+#               try {
+#                 await github.rest.issues.removeLabel({
+#                   owner: context.repo.owner,
+#                   repo: context.repo.repo,
+#                   issue_number: context.issue.number,
+#                   name: 'merge-conflict'
+#                 });
+#               } catch (error) {
+#                 // Label doesn't exist, ignore
+#               }
+#             }

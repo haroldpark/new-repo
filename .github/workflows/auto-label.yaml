@@ -1,0 +1,162 @@
+name: Auto-Labeling
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened]
+  issues:
+    types: [opened, edited]
+
+jobs:
+  auto-label:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      issues: write
+      pull-requests: write
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      # Label PRs based on changed files
+      - name: Label PR by file changes
+        if: github.event_name == 'pull_request'
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const { data: files } = await github.rest.pulls.listFiles({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              pull_number: context.issue.number,
+            });
+
+            const labels = new Set();
+
+            // Define file patterns and their labels
+            const patterns = {
+              'frontend': [/\.(js|jsx|ts|tsx|vue|svelte)$/i, /^src\//, /^frontend\//],
+              'backend': [/\.(py|java|go|php|rb|cs|cpp|c)$/i, /^backend\//, /^server\//, /^api\//],
+              'database': [/\.(sql|migration)$/i, /^migrations\//, /^db\//, /prisma|schema/i],
+              'docs': [/\.(md|rst|txt)$/i, /^docs\//, /README|CHANGELOG|CONTRIBUTING/i],
+              'config': [/\.(json|yaml|yml|toml|ini|conf)$/i, /Dockerfile|docker-compose/, /^\.github\//],
+              'tests': [/\.(test|spec)\.(js|ts|py|go|java)$/i, /^tests?\//, /__tests?__/],
+              'dependencies': [/package\.json|requirements\.txt|go\.mod|Cargo\.toml|pom\.xml/i],
+              'ci/cd': [/^\.github\/workflows\//],
+              'security': [/security|auth|login|oauth/i],
+              'performance': [/performance|perf|benchmark|optimize/i],
+              'ui/ux': [/\.(css|scss|sass|less|styl)$/i, /styles?\//, /ui\//, /components?\//],
+              'mobile': [/android|ios|mobile|react-native/i],
+            };
+
+            // Check each file against patterns
+            files.forEach(file => {
+              const path = file.filename.toLowerCase();
+              
+              for (const [label, regexArray] of Object.entries(patterns)) {
+                if (regexArray.some(regex => regex.test(path))) {
+                  labels.add(label);
+                }
+              }
+            });
+
+            // Size labels based on lines changed
+            const totalChanges = files.reduce((sum, file) => sum + file.changes, 0);
+            if (totalChanges > 500) labels.add('size/xl');
+            else if (totalChanges > 100) labels.add('size/l');
+            else if (totalChanges > 30) labels.add('size/m');
+            else labels.add('size/s');
+
+            // Apply labels
+            if (labels.size > 0) {
+              await github.rest.issues.addLabels({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: context.issue.number,
+                labels: Array.from(labels)
+              });
+            }
+
+      # Label by PR title/content
+      - name: Label by PR content
+        if: github.event_name == 'pull_request'
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const title = context.payload.pull_request.title.toLowerCase();
+            const body = (context.payload.pull_request.body || '').toLowerCase();
+            const content = `${title} ${body}`;
+
+            const labels = [];
+
+            // Type labels based on conventional commits or keywords
+            if (/^feat(\(.*\))?:|feature|add/i.test(title)) labels.push('type/feature');
+            else if (/^fix(\(.*\))?:|bug|hotfix/i.test(title)) labels.push('type/bugfix');
+            else if (/^docs(\(.*\))?:|documentation/i.test(title)) labels.push('type/docs');
+            else if (/^refactor(\(.*\))?:|cleanup|improve/i.test(title)) labels.push('type/refactor');
+            else if (/^test(\(.*\))?:|testing/i.test(title)) labels.push('type/test');
+            else if (/^chore(\(.*\))?:|maintenance/i.test(title)) labels.push('type/chore');
+            else if (/^perf(\(.*\))?:|performance/i.test(title)) labels.push('type/performance');
+
+            // Priority labels
+            if (/urgent|critical|hotfix|p0/i.test(content)) labels.push('priority/high');
+            else if (/important|p1/i.test(content)) labels.push('priority/medium');
+            else labels.push('priority/normal');
+
+            // Status labels
+            if (/wip|work in progress|draft/i.test(content)) labels.push('status/wip');
+            if (/breaking change|breaking/i.test(content)) labels.push('breaking-change');
+
+            // Apply labels
+            if (labels.length > 0) {
+              await github.rest.issues.addLabels({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: context.issue.number,
+                labels: labels
+              });
+            }
+
+      # Label issues by content
+      - name: Label issues
+        if: github.event_name == 'issues'
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const title = context.payload.issue.title.toLowerCase();
+            const body = (context.payload.issue.body || '').toLowerCase();
+            const content = `${title} ${body}`;
+
+            const labels = [];
+
+            // Issue type labels
+            if (/bug|error|broken|crash|fail/i.test(content)) labels.push('bug');
+            else if (/feature|enhancement|improve|add/i.test(content)) labels.push('enhancement');
+            else if (/question|help|how to|usage/i.test(content)) labels.push('question');
+            else if (/documentation|docs|readme/i.test(content)) labels.push('documentation');
+
+            // Priority labels for issues
+            if (/urgent|critical|severe|p0/i.test(content)) labels.push('priority/high');
+            else if (/important|p1/i.test(content)) labels.push('priority/medium');
+
+            // Component labels
+            if (/ui|interface|frontend|design/i.test(content)) labels.push('frontend');
+            if (/api|backend|server/i.test(content)) labels.push('backend');
+            if (/database|db|sql/i.test(content)) labels.push('database');
+
+            // Apply labels
+            if (labels.length > 0) {
+              await github.rest.issues.addLabels({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: context.issue.number,
+                labels: labels
+              });
+            }
+
+      # Add "needs-review" label to new PRs
+      - name: Add review label to new PRs
+        if: github.event_name == 'pull_request' && github.event.action == 'opened'
+        run: |
+          gh pr edit ${{ github.event.pull_request.number }} --add-label "needs-review"
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}

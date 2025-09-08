@@ -36,15 +36,15 @@ export default tseslint.config([
       // other options...
     },
   },
-])
+]);
 ```
 
 You can also install [eslint-plugin-react-x](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-x) and [eslint-plugin-react-dom](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-dom) for React-specific lint rules:
 
 ```js
 // eslint.config.js
-import reactX from 'eslint-plugin-react-x'
-import reactDom from 'eslint-plugin-react-dom'
+import reactX from 'eslint-plugin-react-x';
+import reactDom from 'eslint-plugin-react-dom';
 
 export default tseslint.config([
   globalIgnores(['dist']),
@@ -65,5 +65,60 @@ export default tseslint.config([
       // other options...
     },
   },
-])
+]);
 ```
+
+# Workflows
+
+## Included
+
+1.  CI/CD - Build, Test, and Deploy
+2.  Github automation - Auto-labeling
+3.  Github automation - PR checks/workflows
+4.  Github automation - release management
+
+5.  Notifications - Discord/slack/telegram/email/sms/push notifications
+6.  Utility - compress images
+7.  Merge conflict???
+
+## What's possible?
+
+## Code Quality & Security
+
+- Automated code formatting (Prettier, Black, gofmt) with auto-commits X
+- Security vulnerability scanning (CodeQL, Snyk, dependency audits) X
+- License compliance checking
+- Code coverage reporting with trend tracking X
+- Static analysis and linting enforcement X
+
+## Documentation & Communication
+
+- Auto-generate and update documentation from code comments X
+- Create changelog entries from commit messages or PR labels X
+- Update README badges automatically X
+- Generate API documentation with scalar or GitHub Pages X
+- Comment on PRs with build results, coverage changes, or performance metrics X
+
+## Environment & Infrastructure Management
+
+- Spin up/tear down preview environments for each PR X <----
+- Database migrations and rollbacks
+- Infrastructure as Code deployments (Terraform, CloudFormation)
+- Multi-environment promotion workflows (dev → staging → prod)
+- Automatic scaling based on usage patterns
+
+## Advanced Automation
+
+- Dependency updates with automated testing (Dependabot + custom workflows)
+- Performance benchmarking and regression detection X
+- Cross-repository workflows (update multiple repos simultaneously)
+- Scheduled maintenance tasks (cleanup old branches, archive issues) X
+- Auto-merge PRs that pass all checks (great for dependency updates)
+- Manual approvals (pause workflows and require human confirmation)
+
+## Quality Gates & Compliance
+
+- Require specific reviewers based on changed files X <----
+- Enforce commit message conventions X <----
+- Block deployments during maintenance windows X <----
+- Audit logging for compliance requirements X <----

@@ -1,0 +1,887 @@
+# 🎯 Multi-Language Support:
+
+# JavaScript/TypeScript - JSDoc, TypeDoc, documentation.js
+# React/Vue Components - Auto-extracts props and methods
+# API Routes - Scans for Express/Fastify route documentation
+# Python/Java/Go - Extensible for other languages
+
+# 🔍 Smart Detection:
+
+# Automatically detects project languages and frameworks
+# Only runs relevant documentation generators
+# Scans multiple directories (src/, lib/, components/, etc.)
+
+# 📚 Documentation Types Generated:
+# JSDoc HTML Documentation:
+
+# Professional HTML docs with navigation
+# Supports markdown in comments
+# Includes examples and type information
+
+# Component Documentation:
+
+# Extracts @prop and @param comments
+# Generates markdown tables
+# Works with React and Vue components
+
+# API Documentation:
+
+# Finds @api comments in route handlers
+# Documents REST endpoints automatically
+# Creates organized API reference
+
+# README Auto-Updates:
+
+# Table of contents from headings
+# Project structure tree
+# Available npm scripts documentation
+
+# 🚀 Advanced Features:
+# GitHub Pages Deployment:
+
+# Creates beautiful documentation site
+# Automatic deployment on main branch
+# Professional landing page with navigation
+
+# PR Integration:
+
+# Comments on PRs with documentation preview
+# Shows what documentation was generated
+# Provides JSDoc examples and tips
+
+# Trend Tracking:
+
+# Commits documentation back to repository
+# Maintains documentation history
+# Updates only when content changes
+
+name: Auto-Generate Documentation
+
+on:
+  push:
+    branches: [main, develop]
+    paths:
+      - '**/*.js'
+      - '**/*.jsx'
+      - '**/*.ts'
+      - '**/*.tsx'
+      - '**/*.vue'
+      - '**/*.py'
+      - '**/*.java'
+      - '**/*.go'
+      - '**/*.cs'
+      - '**/*.php'
+      - '**/*.rb'
+  pull_request:
+    branches: [main, develop]
+    paths:
+      - '**/*.js'
+      - '**/*.jsx'
+      - '**/*.ts'
+      - '**/*.tsx'
+      - '**/*.vue'
+  schedule:
+    # Regenerate docs daily at 3 AM UTC
+    - cron: '0 3 * * *'
+  workflow_dispatch:
+    inputs:
+      force_regenerate:
+        description: 'Force regenerate all documentation'
+        required: false
+        type: boolean
+        default: false
+      docs_type:
+        description: 'Type of docs to generate'
+        required: false
+        type: choice
+        options:
+          - 'all'
+          - 'api'
+          - 'components'
+          - 'functions'
+        default: 'all'
+
+jobs:
+  if: false
+  detect-languages:
+    runs-on: ubuntu-latest
+    outputs:
+      has_javascript: ${{ steps.detect.outputs.has_javascript }}
+      has_typescript: ${{ steps.detect.outputs.has_typescript }}
+      has_python: ${{ steps.detect.outputs.has_python }}
+      has_java: ${{ steps.detect.outputs.has_java }}
+      has_go: ${{ steps.detect.outputs.has_go }}
+      has_vue: ${{ steps.detect.outputs.has_vue }}
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Detect languages and frameworks
+        id: detect
+        run: |
+          # Check for different file types
+          JS_FILES=$(find . -name "*.js" -not -path "*/node_modules/*" | wc -l)
+          TS_FILES=$(find . -name "*.ts" -o -name "*.tsx" -not -path "*/node_modules/*" | wc -l)
+          PY_FILES=$(find . -name "*.py" | wc -l)
+          JAVA_FILES=$(find . -name "*.java" | wc -l)
+          GO_FILES=$(find . -name "*.go" | wc -l)
+          VUE_FILES=$(find . -name "*.vue" | wc -l)
+
+          echo "has_javascript=$([[ $JS_FILES -gt 0 ]] && echo true || echo false)" >> $GITHUB_OUTPUT
+          echo "has_typescript=$([[ $TS_FILES -gt 0 ]] && echo true || echo false)" >> $GITHUB_OUTPUT
+          echo "has_python=$([[ $PY_FILES -gt 0 ]] && echo true || echo false)" >> $GITHUB_OUTPUT
+          echo "has_java=$([[ $JAVA_FILES -gt 0 ]] && echo true || echo false)" >> $GITHUB_OUTPUT
+          echo "has_go=$([[ $GO_FILES -gt 0 ]] && echo true || echo false)" >> $GITHUB_OUTPUT
+          echo "has_vue=$([[ $VUE_FILES -gt 0 ]] && echo true || echo false)" >> $GITHUB_OUTPUT
+
+          echo "📊 Detected files:"
+          echo "JavaScript: $JS_FILES, TypeScript: $TS_FILES, Python: $PY_FILES"
+          echo "Java: $JAVA_FILES, Go: $GO_FILES, Vue: $VUE_FILES"
+
+  generate-js-docs:
+    needs: detect-languages
+    if: needs.detect-languages.outputs.has_javascript == 'true' || needs.detect-languages.outputs.has_typescript == 'true'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      pull-requests: write
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Install documentation generators
+        run: |
+          # Install JSDoc for JavaScript/TypeScript
+          npm install -g jsdoc typedoc @apidevtools/swagger-jsdoc swagger-ui-dist
+
+          # Install additional tools for better docs
+          npm install -g documentation jsdoc-to-markdown
+
+          # Install project dependencies if they exist
+          if [ -f package.json ]; then
+            npm ci || npm install
+          fi
+
+      - name: Create JSDoc configuration
+        run: |
+          cat > jsdoc.conf.json << 'EOF'
+          {
+            "source": {
+              "include": ["./src", "./lib", "./index.js", "./app.js", "."],
+              "includePattern": "\\.(js|jsx|ts|tsx)$",
+              "exclude": ["node_modules/", "dist/", "build/", "coverage/", "**/*.test.js", "**/*.spec.js"]
+            },
+            "opts": {
+              "destination": "./docs/api/",
+              "recurse": true,
+              "readme": "./README.md"
+            },
+            "plugins": [
+              "plugins/markdown",
+              "jsdoc/lib/jsdoc/tag/dictionary/definitions"
+            ],
+            "templates": {
+              "cleverLinks": false,
+              "monospaceLinks": false
+            },
+            "markdown": {
+              "parser": "gfm"
+            }
+          }
+          EOF
+
+      - name: Generate JSDoc documentation
+        run: |
+          echo "🔍 Generating JavaScript/TypeScript API documentation..."
+          mkdir -p docs/api
+
+          # Generate JSDoc
+          jsdoc -c jsdoc.conf.json || echo "JSDoc generation completed with warnings"
+
+          # Generate markdown docs using documentation.js
+          if command -v documentation &> /dev/null; then
+            echo "📝 Generating markdown documentation..."
+            mkdir -p docs/markdown
+            documentation build src/** -f md -o docs/markdown/API.md || true
+            documentation build src/** -f html -o docs/html || true
+          fi
+
+      - name: Generate TypeDoc (if TypeScript)
+        if: needs.detect-languages.outputs.has_typescript == 'true'
+        run: |
+          echo "🔍 Generating TypeScript documentation..."
+
+          # Create TypeDoc config
+          cat > typedoc.json << 'EOF'
+          {
+            "entryPoints": ["src"],
+            "out": "docs/typedoc",
+            "theme": "default",
+            "includeVersion": true,
+            "excludePrivate": true,
+            "excludeProtected": true,
+            "excludeExternals": true,
+            "readme": "README.md",
+            "name": "Project Documentation"
+          }
+          EOF
+
+          typedoc || echo "TypeDoc generation completed with warnings"
+
+      - name: Generate component documentation (React/Vue)
+        run: |
+          echo "🧩 Scanning for component documentation..."
+
+          # Create a simple component doc generator
+          node -e "
+            const fs = require('fs');
+            const path = require('path');
+            
+            function extractComponentDocs(filePath, content) {
+              const componentName = path.basename(filePath, path.extname(filePath));
+              const docs = {
+                name: componentName,
+                file: filePath,
+                props: [],
+                methods: [],
+                description: ''
+              };
+              
+              // Extract JSDoc comments
+              const jsdocRegex = /\/\*\*([\s\S]*?)\*\//g;
+              const propRegex = /@prop\s+\{([^}]+)\}\s+(\w+)\s*-?\s*(.*)/g;
+              const paramRegex = /@param\s+\{([^}]+)\}\s+(\w+)\s*-?\s*(.*)/g;
+              
+              let match;
+              while ((match = jsdocRegex.exec(content)) !== null) {
+                const comment = match[1];
+                
+                // Extract description
+                const descMatch = comment.match(/\*\s*([^@\n]+)/);
+                if (descMatch && !docs.description) {
+                  docs.description = descMatch[1].trim();
+                }
+                
+                // Extract props
+                let propMatch;
+                while ((propMatch = propRegex.exec(comment)) !== null) {
+                  docs.props.push({
+                    type: propMatch[1],
+                    name: propMatch[2],
+                    description: propMatch[3] || ''
+                  });
+                }
+                
+                // Extract parameters/methods
+                let paramMatch;
+                while ((paramMatch = paramRegex.exec(comment)) !== null) {
+                  docs.methods.push({
+                    type: paramMatch[1],
+                    name: paramMatch[2], 
+                    description: paramMatch[3] || ''
+                  });
+                }
+              }
+              
+              return docs;
+            }
+            
+            function scanDirectory(dir) {
+              const components = [];
+              
+              if (!fs.existsSync(dir)) return components;
+              
+              function scanRecursive(currentDir) {
+                const files = fs.readdirSync(currentDir);
+                
+                files.forEach(file => {
+                  const filePath = path.join(currentDir, file);
+                  const stat = fs.statSync(filePath);
+                  
+                  if (stat.isDirectory() && !['node_modules', '.git', 'dist', 'build'].includes(file)) {
+                    scanRecursive(filePath);
+                  } else if (file.match(/\.(jsx?|tsx?|vue)$/) && !file.includes('.test.') && !file.includes('.spec.')) {
+                    try {
+                      const content = fs.readFileSync(filePath, 'utf8');
+                      const componentDoc = extractComponentDocs(filePath, content);
+                      if (componentDoc.description || componentDoc.props.length || componentDoc.methods.length) {
+                        components.push(componentDoc);
+                      }
+                    } catch (error) {
+                      console.log('Error processing', filePath, error.message);
+                    }
+                  }
+                });
+              }
+              
+              scanRecursive(dir);
+              return components;
+            }
+            
+            // Scan common directories
+            const directories = ['src', 'components', 'lib', '.'];
+            let allComponents = [];
+            
+            directories.forEach(dir => {
+              const components = scanDirectory(dir);
+              allComponents = allComponents.concat(components);
+            });
+            
+            if (allComponents.length > 0) {
+              // Generate component documentation
+              let markdown = '# Component Documentation\n\n';
+              markdown += 'Auto-generated from code comments.\n\n';
+              
+              allComponents.forEach(comp => {
+                markdown += '## ' + comp.name + '\n\n';
+                if (comp.description) {
+                  markdown += comp.description + '\n\n';
+                }
+                markdown += '**File:** ' + comp.file + '\n\n';
+                
+                if (comp.props.length > 0) {
+                  markdown += '### Props\n\n';
+                  markdown += '| Name | Type | Description |\n';
+                  markdown += '|------|------|-------------|\n';
+                  comp.props.forEach(prop => {
+                    markdown += '| ' + prop.name + ' | ' + prop.type + ' | ' + prop.description + ' |\n';
+                  });
+                  markdown += '\n';
+                }
+                
+                if (comp.methods.length > 0) {
+                  markdown += '### Methods\n\n';
+                  markdown += '| Name | Parameters | Description |\n';
+                  markdown += '|------|------------|-------------|\n';
+                  comp.methods.forEach(method => {
+                    markdown += '| ' + method.name + ' | ' + method.type + ' | ' + method.description + ' |\n';
+                  });
+                  markdown += '\n';
+                }
+                
+                markdown += '---\n\n';
+              });
+              
+              // Ensure docs directory exists
+              if (!fs.existsSync('docs')) fs.mkdirSync('docs');
+              fs.writeFileSync('docs/COMPONENTS.md', markdown);
+              
+              console.log('📋 Generated documentation for', allComponents.length, 'components');
+            } else {
+              console.log('📋 No documented components found');
+            }
+          "
+
+      - name: Generate API documentation from comments
+        run: |
+          echo "🔍 Extracting API documentation from comments..."
+
+          node -e "
+            const fs = require('fs');
+            const path = require('path');
+            
+            function extractAPIDoc(content, filePath) {
+              const apis = [];
+              
+              // Look for API endpoint comments
+              const apiRegex = /\/\*\*[\s\S]*?@api\s+\{(\w+)\}\s+([^\n]+)[\s\S]*?\*\//g;
+              const routeRegex = /(?:app\.|router\.)(get|post|put|delete|patch)\s*\(\s*['\"]([^'\"]+)['\"]/g;
+              
+              let match;
+              while ((match = apiRegex.exec(content)) !== null) {
+                const method = match[1].toUpperCase();
+                const description = match[2];
+                
+                // Try to find the actual route
+                const afterComment = content.slice(match.index + match[0].length);
+                const routeMatch = routeRegex.exec(afterComment);
+                
+                if (routeMatch) {
+                  apis.push({
+                    method: method,
+                    path: routeMatch[2],
+                    description: description,
+                    file: filePath
+                  });
+                }
+              }
+              
+              // Also look for function documentation
+              const funcRegex = /\/\*\*[\s\S]*?\*\/[\s\S]*?(?:function\s+(\w+)|const\s+(\w+)\s*=)/g;
+              while ((match = funcRegex.exec(content)) !== null) {
+                const funcName = match[1] || match[2];
+                const comment = content.slice(match.index, match.index + match[0].length);
+                
+                // Extract description from comment
+                const descMatch = comment.match(/\*\s*([^@\n][^\n]*)/);
+                if (descMatch && funcName) {
+                  apis.push({
+                    type: 'function',
+                    name: funcName,
+                    description: descMatch[1].trim(),
+                    file: filePath
+                  });
+                }
+              }
+              
+              return apis;
+            }
+            
+            function scanForAPIs() {
+              const apis = [];
+              const directories = ['src', 'routes', 'api', 'controllers', '.'];
+              
+              directories.forEach(dir => {
+                if (!fs.existsSync(dir)) return;
+                
+                function scanRecursive(currentDir) {
+                  const files = fs.readdirSync(currentDir);
+                  
+                  files.forEach(file => {
+                    const filePath = path.join(currentDir, file);
+                    const stat = fs.statSync(filePath);
+                    
+                    if (stat.isDirectory() && !['node_modules', '.git', 'dist', 'build'].includes(file)) {
+                      scanRecursive(filePath);
+                    } else if (file.match(/\.(js|ts)$/) && !file.includes('.test.')) {
+                      try {
+                        const content = fs.readFileSync(filePath, 'utf8');
+                        const fileAPIs = extractAPIDoc(content, filePath);
+                        apis.push(...fileAPIs);
+                      } catch (error) {
+                        console.log('Error processing', filePath, error.message);
+                      }
+                    }
+                  });
+                }
+                
+                scanRecursive(dir);
+              });
+              
+              return apis;
+            }
+            
+            const apis = scanForAPIs();
+            
+            if (apis.length > 0) {
+              let markdown = '# API Documentation\n\n';
+              markdown += 'Auto-generated from code comments.\n\n';
+              
+              // Group by type
+              const routes = apis.filter(api => api.method);
+              const functions = apis.filter(api => api.type === 'function');
+              
+              if (routes.length > 0) {
+                markdown += '## API Endpoints\n\n';
+                routes.forEach(route => {
+                  markdown += '### ' + route.method + ' ' + route.path + '\n\n';
+                  markdown += route.description + '\n\n';
+                  markdown += '**File:** ' + route.file + '\n\n';
+                  markdown += '---\n\n';
+                });
+              }
+              
+              if (functions.length > 0) {
+                markdown += '## Functions\n\n';
+                functions.forEach(func => {
+                  markdown += '### ' + func.name + '()\n\n';
+                  markdown += func.description + '\n\n';
+                  markdown += '**File:** ' + func.file + '\n\n';
+                  markdown += '---\n\n';
+                });
+              }
+              
+              if (!fs.existsSync('docs')) fs.mkdirSync('docs');
+              fs.writeFileSync('docs/API.md', markdown);
+              
+              console.log('📋 Generated API documentation for', apis.length, 'items');
+            } else {
+              console.log('📋 No documented APIs found');
+            }
+          "
+
+      - name: Upload JavaScript docs
+        uses: actions/upload-artifact@v4
+        with:
+          name: js-documentation
+          path: docs/
+          retention-days: 30
+
+  generate-readme-docs:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Generate/Update README sections
+        run: |
+          echo "📝 Updating README with auto-generated sections..."
+
+          node -e "
+            const fs = require('fs');
+            const path = require('path');
+            
+            // Read current README
+            let readme = '';
+            if (fs.existsSync('README.md')) {
+              readme = fs.readFileSync('README.md', 'utf8');
+            }
+            
+            // Generate table of contents
+            function generateTOC(content) {
+              const headings = content.match(/^#{1,6}\s+.+$/gm) || [];
+              let toc = '## Table of Contents\n\n';
+              
+              headings.forEach(heading => {
+                const level = heading.match(/^#+/)[0].length;
+                const text = heading.replace(/^#+\s+/, '');
+                const anchor = text.toLowerCase().replace(/[^\w\s-]/g, '').replace(/\s+/g, '-');
+                const indent = '  '.repeat(level - 1);
+                toc += indent + '- [' + text + '](#' + anchor + ')\n';
+              });
+              
+              return toc + '\n';
+            }
+            
+            // Generate project structure
+            function generateProjectStructure() {
+              let structure = '## Project Structure\n\n```\n';
+              
+              function buildTree(dir, prefix = '') {
+                const items = [];
+                try {
+                  const files = fs.readdirSync(dir).sort();
+                  files.forEach((file, index) => {
+                    if (['node_modules', '.git', '.DS_Store', 'coverage', 'dist', 'build'].includes(file)) return;
+                    
+                    const filePath = path.join(dir, file);
+                    const stat = fs.statSync(filePath);
+                    const isLast = index === files.filter(f => !['node_modules', '.git', '.DS_Store', 'coverage', 'dist', 'build'].includes(f)).length - 1;
+                    const currentPrefix = prefix + (isLast ? '└── ' : '├── ');
+                    const nextPrefix = prefix + (isLast ? '    ' : '│   ');
+                    
+                    items.push(currentPrefix + file);
+                    
+                    if (stat.isDirectory() && prefix.length < 20) { // Limit depth
+                      const subItems = buildTree(filePath, nextPrefix);
+                      items.push(...subItems);
+                    }
+                  });
+                } catch (error) {
+                  // Ignore errors
+                }
+                return items;
+              }
+              
+              const tree = buildTree('.').slice(0, 50); // Limit to 50 items
+              structure += tree.join('\n') + '\n```\n\n';
+              return structure;
+            }
+            
+            // Generate scripts section from package.json
+            function generateScripts() {
+              if (!fs.existsSync('package.json')) return '';
+              
+              try {
+                const pkg = JSON.parse(fs.readFileSync('package.json', 'utf8'));
+                if (!pkg.scripts) return '';
+                
+                let scripts = '## Available Scripts\n\n';
+                Object.entries(pkg.scripts).forEach(([name, command]) => {
+                  scripts += '### npm run ' + name + '\n\n';
+                  scripts += '```bash\n' + command + '\n```\n\n';
+                });
+                return scripts;
+              } catch (error) {
+                return '';
+              }
+            }
+            
+            // Update or insert auto-generated sections
+            function updateSection(content, sectionName, newContent) {
+              const startMarker = '<!-- AUTO-GENERATED-' + sectionName.toUpperCase() + '-START -->';
+              const endMarker = '<!-- AUTO-GENERATED-' + sectionName.toUpperCase() + '-END -->';
+              
+              if (content.includes(startMarker)) {
+                const regex = new RegExp(startMarker + '[\\s\\S]*?' + endMarker, 'g');
+                return content.replace(regex, startMarker + '\n' + newContent + endMarker);
+              } else {
+                return content + '\n\n' + startMarker + '\n' + newContent + endMarker + '\n';
+              }
+            }
+            
+            // Generate sections
+            const toc = generateTOC(readme);
+            const structure = generateProjectStructure();
+            const scripts = generateScripts();
+            
+            // Update README
+            if (toc.split('\n').length > 3) {
+              readme = updateSection(readme, 'toc', toc);
+            }
+            
+            if (structure) {
+              readme = updateSection(readme, 'structure', structure);
+            }
+            
+            if (scripts) {
+              readme = updateSection(readme, 'scripts', scripts);
+            }
+            
+            // Add timestamp
+            const timestamp = '<!-- Last updated: ' + new Date().toISOString() + ' -->';
+            if (readme.includes('<!-- Last updated:')) {
+              readme = readme.replace(/<!-- Last updated:.*?-->/, timestamp);
+            } else {
+              readme += '\n' + timestamp + '\n';
+            }
+            
+            fs.writeFileSync('README.md', readme);
+            console.log('📝 README updated with auto-generated sections');
+          "
+
+      - name: Upload README docs
+        uses: actions/upload-artifact@v4
+        with:
+          name: readme-updates
+          path: README.md
+          retention-days: 7
+
+  deploy-documentation:
+    needs: [generate-js-docs, generate-readme-docs]
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      pages: write
+      id-token: write
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Download all documentation
+        uses: actions/download-artifact@v4
+        with:
+          path: generated-docs
+
+      - name: Setup documentation site
+        run: |
+          mkdir -p gh-pages
+
+          # Copy generated docs
+          if [ -d "generated-docs/js-documentation" ]; then
+            cp -r generated-docs/js-documentation/* gh-pages/ 2>/dev/null || true
+          fi
+
+          # Create index page
+          cat > gh-pages/index.html << 'EOF'
+          <!DOCTYPE html>
+          <html>
+          <head>
+              <title>Project Documentation</title>
+              <style>
+                  body { font-family: Arial, sans-serif; margin: 40px; }
+                  .card { border: 1px solid #ddd; margin: 20px 0; padding: 20px; border-radius: 5px; }
+                  .card h3 { margin-top: 0; color: #333; }
+                  .card a { color: #0066cc; text-decoration: none; }
+                  .card a:hover { text-decoration: underline; }
+                  .timestamp { color: #666; font-size: 0.9em; }
+              </style>
+          </head>
+          <body>
+              <h1>📚 Project Documentation</h1>
+              <p>Auto-generated documentation from code comments</p>
+              
+              <div class="card">
+                  <h3>🔍 API Documentation</h3>
+                  <p>Generated from JSDoc comments</p>
+                  <a href="api/">Browse API Docs</a> | 
+                  <a href="API.md">View API Markdown</a>
+              </div>
+              
+              <div class="card">
+                  <h3>🧩 Component Documentation</h3>
+                  <p>React/Vue component documentation</p>
+                  <a href="COMPONENTS.md">View Components</a>
+              </div>
+              
+              <div class="card">
+                  <h3>📖 TypeDoc (TypeScript)</h3>
+                  <p>TypeScript API documentation</p>
+                  <a href="typedoc/">Browse TypeDoc</a>
+              </div>
+              
+              <div class="card">
+                  <h3>🎨 HTML Documentation</h3>
+                  <p>Interactive HTML documentation</p>
+                  <a href="html/">Browse HTML Docs</a>
+              </div>
+              
+              <div class="timestamp">
+                  Last updated: DATE_PLACEHOLDER
+              </div>
+          </body>
+          </html>
+          EOF
+
+          # Replace timestamp
+          sed -i "s/DATE_PLACEHOLDER/$(date)/" gh-pages/index.html
+
+      - name: Deploy to GitHub Pages
+        uses: peaceiris/actions-gh-pages@v4
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          publish_dir: ./gh-pages
+          commit_message: '📚 Update documentation - ${{ github.sha }}'
+
+  commit-documentation:
+    needs: [generate-js-docs, generate-readme-docs]
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Download documentation
+        uses: actions/download-artifact@v4
+        with:
+          path: generated-docs
+
+      - name: Update repository docs
+        run: |
+          # Copy generated documentation back to repo
+          if [ -d "generated-docs/js-documentation" ]; then
+            cp -r generated-docs/js-documentation/* . 2>/dev/null || true
+          fi
+
+          if [ -f "generated-docs/readme-updates/README.md" ]; then
+            cp generated-docs/readme-updates/README.md README.md
+          fi
+
+      - name: Commit documentation updates
+        run: |
+          git config --local user.email "action@github.com"
+          git config --local user.name "GitHub Action"
+
+          git add docs/ README.md 2>/dev/null || true
+
+          if git diff --staged --quiet; then
+            echo "No documentation changes to commit"
+          else
+            git commit -m "📚 Auto-update documentation from code comments
+            
+            - Generated API documentation
+            - Updated component docs  
+            - Refreshed README sections
+            
+            Generated: $(date)
+            Commit: ${{ github.sha }}"
+            
+            git push
+          fi
+
+  # Comment on PR with documentation preview
+  pr-documentation-preview:
+    if: github.event_name == 'pull_request'
+    needs: [generate-js-docs]
+    runs-on: ubuntu-latest
+    permissions:
+      pull-requests: write
+    steps:
+      - name: Download documentation
+        uses: actions/download-artifact@v4
+        with:
+          name: js-documentation
+          path: docs
+
+      - name: Comment on PR with doc preview
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const fs = require('fs');
+
+            let comment = '## 📚 Documentation Preview\n\n';
+            comment += 'Documentation has been auto-generated from your code comments:\n\n';
+
+            // Check what docs were generated
+            const docFiles = [];
+            try {
+              if (fs.existsSync('docs/API.md')) docFiles.push('API Documentation');
+              if (fs.existsSync('docs/COMPONENTS.md')) docFiles.push('Component Documentation');
+              if (fs.existsSync('docs/api/index.html')) docFiles.push('JSDoc HTML');
+              if (fs.existsSync('docs/typedoc/index.html')) docFiles.push('TypeDoc');
+            } catch (error) {
+              console.log('Error checking docs:', error);
+            }
+
+            if (docFiles.length > 0) {
+              comment += '### ✅ Generated Documentation:\n';
+              docFiles.forEach(doc => {
+                comment += '- ' + doc + '\n';
+              });
+              comment += '\n📁 **Documentation artifacts are available in this workflow run**\n';
+            } else {
+              comment += '### ℹ️ No documentation found\n';
+              comment += 'Make sure your code includes JSDoc comments for automatic documentation generation.\n';
+            }
+
+            comment += '\n### 💡 Documentation Tips:\n';
+            comment += '```javascript\n';
+            comment += '/**\n';
+            comment += ' * Description of your function\n';
+            comment += ' * @param {string} name - The name parameter\n';
+            comment += ' * @param {Object} options - Configuration options\n';
+            comment += ' * @returns {Promise} Returns a promise\n';
+            comment += ' * @example\n';
+            comment += ' * myFunction("test", { debug: true })\n';
+            comment += ' */\n';
+            comment += 'function myFunction(name, options) {}\n';
+            comment += '```\n';
+
+            comment += '\n*Documentation will be deployed to GitHub Pages when this PR is merged.*';
+
+            // Find existing comment and update it
+            const { data: comments } = await github.rest.issues.listComments({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: context.issue.number,
+            });
+
+            const existingComment = comments.find(c => 
+              c.body.includes('📚 Documentation Preview')
+            );
+
+            if (existingComment) {
+              await github.rest.issues.updateComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                comment_id: existingComment.id,
+                body: comment
+              });
+            } else {
+              await github.rest.issues.createComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: context.issue.number,
+                body: comment
+              });
+            }

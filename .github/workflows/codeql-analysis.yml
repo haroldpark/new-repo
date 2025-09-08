@@ -1,0 +1,333 @@
+name: 'CodeQL Security Analysis'
+
+on:
+  push:
+    branches: [main, develop]
+  pull_request:
+    branches: [main, develop]
+  schedule:
+    # Run CodeQL analysis every Monday at 6:00 AM UTC
+    - cron: '0 6 * * 1'
+  workflow_dispatch:
+    inputs:
+      languages:
+        description: 'Languages to analyze (comma-separated: javascript,python,java,go,csharp,cpp)'
+        required: false
+        default: 'javascript,python'
+      config-file:
+        description: 'Path to CodeQL config file'
+        required: false
+        default: ''
+
+jobs:
+  if: false
+  analyze:
+    name: Analyze (${{ matrix.language }})
+    runs-on: ${{ (matrix.language == 'swift' && 'macos-latest') || 'ubuntu-latest' }}
+    timeout-minutes: ${{ (matrix.language == 'swift' && 120) || 360 }}
+    permissions:
+      # Required for all workflows
+      security-events: write
+      # Required to fetch internal or private CodeQL packs
+      packages: read
+      # Only required for workflows in private repositories
+      actions: read
+      contents: read
+
+    strategy:
+      fail-fast: false
+      matrix:
+        # Define languages here or use input parameter
+        # Supported languages: 'c-cpp', 'csharp', 'go', 'java-kotlin', 'javascript-typescript', 'python', 'ruby', 'swift'
+        language: ['javascript-typescript', 'python']
+        # You can add more languages based on your project:
+        # language: ['javascript-typescript', 'python', 'java-kotlin', 'go', 'csharp', 'c-cpp']
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          # Fetches complete history for better analysis
+          fetch-depth: 0
+
+      # Initializes the CodeQL tools for scanning
+      - name: Initialize CodeQL
+        uses: github/codeql-action/init@v3
+        with:
+          languages: ${{ matrix.language }}
+          # Use custom config file if provided
+          config-file: ${{ github.event.inputs.config-file || './.github/codeql/codeql-config.yml' }}
+          # You can specify custom queries here
+          queries: +security-and-quality
+          # For more query suites, you can use:
+          # queries: security-extended,security-and-quality
+
+          # Setup CodeQL bundle (optional - for using specific CodeQL version)
+          # tools: latest
+
+      # Setup language-specific dependencies
+      - name: Setup Node.js
+        if: matrix.language == 'javascript-typescript'
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Setup Python
+        if: matrix.language == 'python'
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.11'
+          cache: 'pip'
+
+      - name: Setup Java
+        if: matrix.language == 'java-kotlin'
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: '17'
+          cache: 'maven'
+
+      - name: Setup Go
+        if: matrix.language == 'go'
+        uses: actions/setup-go@v4
+        with:
+          go-version: '1.21'
+          cache: true
+
+      - name: Setup .NET
+        if: matrix.language == 'csharp'
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '8.0'
+
+      # Install dependencies for better analysis
+      - name: Install JavaScript dependencies
+        if: matrix.language == 'javascript-typescript'
+        run: |
+          if [ -f package-lock.json ]; then
+            npm ci
+          elif [ -f yarn.lock ]; then
+            yarn install --frozen-lockfile
+          elif [ -f pnpm-lock.yaml ]; then
+            npm install -g pnpm
+            pnpm install --frozen-lockfile
+          elif [ -f package.json ]; then
+            npm install
+          fi
+
+      - name: Install Python dependencies
+        if: matrix.language == 'python'
+        run: |
+          if [ -f requirements.txt ]; then
+            pip install -r requirements.txt
+          elif [ -f Pipfile ]; then
+            pip install pipenv
+            pipenv install --system
+          elif [ -f pyproject.toml ]; then
+            pip install -e .
+          fi
+
+      - name: Install Java dependencies
+        if: matrix.language == 'java-kotlin'
+        run: |
+          if [ -f pom.xml ]; then
+            mvn clean compile -DskipTests
+          elif [ -f build.gradle ]; then
+            ./gradlew build -x test
+          elif [ -f build.gradle.kts ]; then
+            ./gradlew build -x test
+          fi
+
+      - name: Install Go dependencies
+        if: matrix.language == 'go'
+        run: |
+          if [ -f go.mod ]; then
+            go mod download
+            go build -v ./...
+          fi
+
+      - name: Build .NET project
+        if: matrix.language == 'csharp'
+        run: |
+          if [ -f *.sln ]; then
+            dotnet build *.sln
+          elif [ -f *.csproj ]; then
+            dotnet build *.csproj
+          fi
+
+      # For C/C++, you might need custom build commands
+      - name: Build C/C++ project
+        if: matrix.language == 'c-cpp'
+        run: |
+          # Add your build commands here
+          # Example for Make:
+          # make
+          # Example for CMake:
+          # mkdir build && cd build
+          # cmake ..
+          # make
+          echo "Add your C/C++ build commands here"
+
+      # Perform CodeQL Analysis
+      - name: Perform CodeQL Analysis
+        uses: github/codeql-action/analyze@v3
+        with:
+          category: '/language:${{matrix.language}}'
+          # Upload results even if there are errors (optional)
+          upload: failure-only
+          # Specify output format (optional)
+          output: sarif-results
+          # Add cleanup (optional)
+          cleanup-level: none
+
+      # Upload SARIF results as artifacts for manual review
+      - name: Upload SARIF results
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: codeql-sarif-${{ matrix.language }}
+          path: sarif-results
+          retention-days: 30
+
+      # Comment on PR with analysis summary (for PR events)
+      - name: Comment on PR
+        if: github.event_name == 'pull_request' && always()
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const fs = require('fs');
+            const path = require('path');
+
+            try {
+              // Look for SARIF files
+              const sarifDir = 'sarif-results';
+              if (fs.existsSync(sarifDir)) {
+                const files = fs.readdirSync(sarifDir);
+                const sarifFiles = files.filter(f => f.endsWith('.sarif'));
+                
+                let totalAlerts = 0;
+                let highSeverity = 0;
+                let mediumSeverity = 0;
+                let lowSeverity = 0;
+                
+                for (const file of sarifFiles) {
+                  const sarifPath = path.join(sarifDir, file);
+                  const sarif = JSON.parse(fs.readFileSync(sarifPath, 'utf8'));
+                  
+                  for (const run of sarif.runs || []) {
+                    for (const result of run.results || []) {
+                      totalAlerts++;
+                      const level = result.level || 'note';
+                      if (level === 'error') highSeverity++;
+                      else if (level === 'warning') mediumSeverity++;
+                      else lowSeverity++;
+                    }
+                  }
+                }
+                
+                const language = '${{ matrix.language }}';
+                let emoji = '✅';
+                let status = 'Clean';
+                
+                if (totalAlerts > 0) {
+                  emoji = highSeverity > 0 ? '🚨' : mediumSeverity > 0 ? '⚠️' : '📋';
+                  status = `${totalAlerts} alert${totalAlerts === 1 ? '' : 's'} found`;
+                }
+                
+                const comment = `## ${emoji} CodeQL Analysis Results - ${language}
+                
+                **Status**: ${status}
+                
+                ${totalAlerts > 0 ? `
+                | Severity | Count |
+                |----------|-------|
+                | High     | ${highSeverity} |
+                | Medium   | ${mediumSeverity} |
+                | Low/Info | ${lowSeverity} |
+                
+                📊 **Total Alerts**: ${totalAlerts}
+                
+                > Review the Security tab for detailed findings and remediation guidance.
+                ` : '🎉 No security issues found!'}
+                `;
+                
+                // Find existing comment to update
+                const { data: comments } = await github.rest.issues.listComments({
+                  owner: context.repo.owner,
+                  repo: context.repo.repo,
+                  issue_number: context.issue.number,
+                });
+                
+                const existingComment = comments.find(c => 
+                  c.body.includes(`CodeQL Analysis Results - ${language}`)
+                );
+                
+                if (existingComment) {
+                  await github.rest.issues.updateComment({
+                    owner: context.repo.owner,
+                    repo: context.repo.repo,
+                    comment_id: existingComment.id,
+                    body: comment
+                  });
+                } else {
+                  await github.rest.issues.createComment({
+                    owner: context.repo.owner,
+                    repo: context.repo.repo,
+                    issue_number: context.issue.number,
+                    body: comment
+                  });
+                }
+              }
+            } catch (error) {
+              console.log('Could not post PR comment:', error.message);
+            }
+
+  # Summary job to provide overall status
+  analysis-summary:
+    needs: analyze
+    runs-on: ubuntu-latest
+    if: always()
+    steps:
+      - name: Analysis Summary
+        run: |
+          echo "🔍 CodeQL Analysis completed"
+          echo "📊 Check the Security tab for detailed results"
+          echo "📁 SARIF files uploaded as artifacts for manual review"
+
+          # Check if any analysis failed
+          if [[ "${{ needs.analyze.result }}" == "failure" ]]; then
+            echo "❌ Some analyses failed - check the logs above"
+            exit 1
+          elif [[ "${{ needs.analyze.result }}" == "success" ]]; then
+            echo "✅ All analyses completed successfully"
+          else
+            echo "⚠️  Analysis completed with warnings"
+          fi
+
+      # Optional: Create GitHub issue for high-severity findings
+      - name: Create security issue
+        if: github.event_name == 'schedule' # Only on scheduled runs
+        uses: actions/github-script@v7
+        with:
+          script: |
+            // This would require parsing SARIF results and checking for high-severity issues
+            // Implementation depends on your specific needs
+            console.log('Security issue creation logic would go here');
+
+  # Optional: Job to check CodeQL configuration
+  validate-config:
+    runs-on: ubuntu-latest
+    if: github.event_name == 'pull_request'
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Validate CodeQL config
+        run: |
+          if [ -f .github/codeql/codeql-config.yml ]; then
+            echo "✅ CodeQL config file found"
+            # You could add YAML validation here
+          else
+            echo "ℹ️  No custom CodeQL config found - using defaults"
+          fi

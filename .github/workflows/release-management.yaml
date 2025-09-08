@@ -1,0 +1,262 @@
+name: Release Management
+
+on:
+  # Automatic release on version tags
+  push:
+    tags:
+      - 'v*.*.*'
+
+  # Manual release trigger
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Release version (e.g., v1.2.3)'
+        required: true
+        type: string
+      prerelease:
+        description: 'Is this a pre-release?'
+        required: false
+        type: boolean
+        default: false
+      draft:
+        description: 'Create as draft release?'
+        required: false
+        type: boolean
+        default: false
+
+jobs:
+  if: false
+  # Validate the release
+  validate-release:
+    runs-on: ubuntu-latest
+    outputs:
+      version: ${{ steps.get_version.outputs.version }}
+      is_prerelease: ${{ steps.get_version.outputs.is_prerelease }}
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Get version info
+        id: get_version
+        run: |
+          if [ "${{ github.event_name }}" == "push" ]; then
+            VERSION=${GITHUB_REF#refs/tags/}
+            IS_PRERELEASE=$(echo $VERSION | grep -E "(alpha|beta|rc)" && echo "true" || echo "false")
+          else
+            VERSION="${{ github.event.inputs.version }}"
+            IS_PRERELEASE="${{ github.event.inputs.prerelease }}"
+          fi
+
+          echo "version=$VERSION" >> $GITHUB_OUTPUT
+          echo "is_prerelease=$IS_PRERELEASE" >> $GITHUB_OUTPUT
+          echo "Release version: $VERSION"
+          echo "Is prerelease: $IS_PRERELEASE"
+
+      - name: Validate version format
+        run: |
+          VERSION="${{ steps.get_version.outputs.version }}"
+          if [[ ! $VERSION =~ ^v[0-9]+\.[0-9]+\.[0-9]+(-[a-zA-Z0-9]+)?$ ]]; then
+            echo "Error: Version $VERSION does not follow semantic versioning (vX.Y.Z or vX.Y.Z-suffix)"
+            exit 1
+          fi
+
+  # Build and test before release
+  pre-release-tests:
+    needs: validate-release
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        node-version: [18.x, 20.x, 22.x]
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js ${{ matrix.node-version }}
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ matrix.node-version }}
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Run tests
+        run: npm test
+
+      - name: Build application
+        run: npm run build
+
+      - name: Upload build artifacts
+        if: matrix.node-version == '22.x'
+        uses: actions/upload-artifact@v4
+        with:
+          name: release-build
+          path: dist/
+          retention-days: 7
+
+  # Generate changelog
+  generate-changelog:
+    needs: validate-release
+    runs-on: ubuntu-latest
+    outputs:
+      changelog: ${{ steps.changelog.outputs.changelog }}
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Generate changelog
+        id: changelog
+        run: |
+          # Get the previous tag
+          PREV_TAG=$(git describe --tags --abbrev=0 HEAD~1 2>/dev/null || echo "")
+          CURRENT_TAG="${{ needs.validate-release.outputs.version }}"
+
+          echo "Generating changelog from $PREV_TAG to $CURRENT_TAG"
+
+          # Generate changelog using git log
+          if [ -n "$PREV_TAG" ]; then
+            CHANGELOG=$(git log --pretty=format:"- %s (%h)" $PREV_TAG..HEAD --no-merges)
+          else
+            CHANGELOG=$(git log --pretty=format:"- %s (%h)" --no-merges)
+          fi
+
+          # Categorize commits
+          FEATURES=$(echo "$CHANGELOG" | grep -i "feat\|feature\|add" || true)
+          FIXES=$(echo "$CHANGELOG" | grep -i "fix\|bug" || true)
+          DOCS=$(echo "$CHANGELOG" | grep -i "docs\|documentation" || true)
+          CHORES=$(echo "$CHANGELOG" | grep -i "chore\|refactor\|style" || true)
+
+          # Create formatted changelog
+          FORMATTED_CHANGELOG="## What's Changed\n\n"
+
+          if [ -n "$FEATURES" ]; then
+            FORMATTED_CHANGELOG="${FORMATTED_CHANGELOG}### ✨ Features\n$FEATURES\n\n"
+          fi
+
+          if [ -n "$FIXES" ]; then
+            FORMATTED_CHANGELOG="${FORMATTED_CHANGELOG}### 🐛 Bug Fixes\n$FIXES\n\n"
+          fi
+
+          if [ -n "$DOCS" ]; then
+            FORMATTED_CHANGELOG="${FORMATTED_CHANGELOG}### 📚 Documentation\n$DOCS\n\n"
+          fi
+
+          if [ -n "$CHORES" ]; then
+            FORMATTED_CHANGELOG="${FORMATTED_CHANGELOG}### 🔧 Maintenance\n$CHORES\n\n"
+          fi
+
+          # Add contributors
+          CONTRIBUTORS=$(git log --pretty=format:"%an" $PREV_TAG..HEAD --no-merges | sort -u | sed 's/^/- @/' | tr '\n' '\n')
+          if [ -n "$CONTRIBUTORS" ]; then
+            FORMATTED_CHANGELOG="${FORMATTED_CHANGELOG}### 👥 Contributors\n$CONTRIBUTORS\n"
+          fi
+
+          # Save to file and output
+          echo -e "$FORMATTED_CHANGELOG" > changelog.md
+          echo "changelog<<EOF" >> $GITHUB_OUTPUT
+          echo -e "$FORMATTED_CHANGELOG" >> $GITHUB_OUTPUT
+          echo "EOF" >> $GITHUB_OUTPUT
+
+      - name: Upload changelog
+        uses: actions/upload-artifact@v4
+        with:
+          name: changelog
+          path: changelog.md
+
+  # Create the actual release
+  create-release:
+    needs: [validate-release, pre-release-tests, generate-changelog]
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Download build artifacts
+        uses: actions/download-artifact@v4
+        with:
+          name: release-build
+          path: dist/
+
+      - name: Create release archive
+        run: |
+          tar -czf release-${{ needs.validate-release.outputs.version }}.tar.gz dist/
+          zip -r release-${{ needs.validate-release.outputs.version }}.zip dist/
+
+      - name: Create GitHub Release
+        uses: actions/create-release@v1
+        id: create_release
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          tag_name: ${{ needs.validate-release.outputs.version }}
+          release_name: Release ${{ needs.validate-release.outputs.version }}
+          body: ${{ needs.generate-changelog.outputs.changelog }}
+          draft: ${{ github.event.inputs.draft || false }}
+          prerelease: ${{ needs.validate-release.outputs.is_prerelease }}
+
+      - name: Upload Release Assets
+        uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ steps.create_release.outputs.upload_url }}
+          asset_path: ./release-${{ needs.validate-release.outputs.version }}.tar.gz
+          asset_name: release-${{ needs.validate-release.outputs.version }}.tar.gz
+          asset_content_type: application/gzip
+
+      - name: Upload Release Assets (ZIP)
+        uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ steps.create_release.outputs.upload_url }}
+          asset_path: ./release-${{ needs.validate-release.outputs.version }}.zip
+          asset_name: release-${{ needs.validate-release.outputs.version }}.zip
+          asset_content_type: application/zip
+
+  # Post-release tasks
+  post-release:
+    needs: [validate-release, create-release]
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      # Update version in package.json if needed
+      - name: Update package version
+        if: github.event_name == 'workflow_dispatch'
+        run: |
+          VERSION="${{ needs.validate-release.outputs.version }}"
+          # Remove 'v' prefix for package.json
+          PACKAGE_VERSION=${VERSION#v}
+
+          if [ -f package.json ]; then
+            npm version $PACKAGE_VERSION --no-git-tag-version
+            git config --local user.email "action@github.com"
+            git config --local user.name "GitHub Action"
+            git add package.json
+            git commit -m "chore: bump version to $VERSION" || echo "No changes to commit"
+            git push
+          fi
+
+      # Create/update release branch
+      - name: Create release branch
+        if: needs.validate-release.outputs.is_prerelease == 'false'
+        run: |
+          VERSION="${{ needs.validate-release.outputs.version }}"
+          BRANCH_NAME="release/${VERSION}"
+
+          git checkout -b $BRANCH_NAME
+          git push origin $BRANCH_NAME
+
+      # Notify team (example with Slack webhook)
+      - name: Notify team
+        if: success()
+        run: |
+          VERSION="${{ needs.validate-release.outputs.version }}"
