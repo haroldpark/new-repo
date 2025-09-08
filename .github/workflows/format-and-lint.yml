@@ -21,6 +21,48 @@
 # Quality metrics reporting
 # Troubleshooting guide
 
+name: Lint and Format Check
+
+on:
+  pull_request:
+    branches: [main, develop]
+  push:
+    branches: [main, develop]
+
+jobs:
+  lint:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Run ESLint
+        run: npm run lint:check
+
+      - name: Check Prettier formatting
+        run: npm run format:check
+
+      # - name: Security audit
+      #   run: npm audit --audit-level high
+
+      - name: Upload ESLint results
+        if: failure()
+        uses: github/super-linter@v4
+        env:
+          DEFAULT_BRANCH: main
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+# NOTE: BELOW SHOWS YOU HOW TO MAKE AN AUTO-COMMIT TO FIX FORMATTING
+
 # name: Auto Format Code with Prettier
 
 # on:
@@ -105,44 +147,3 @@
 #               repo: context.repo.repo,
 #               body: '🎨 **Auto-formatting applied!** \n\nYour code has been automatically formatted with Prettier. Please pull the latest changes before continuing your work.\n\n```bash\ngit pull origin ${{ github.head_ref }}\n```'
 #             })
-
-name: Lint and Format Check
-
-on:
-  pull_request:
-    branches: [main, develop]
-  push:
-    branches: [main, develop]
-
-jobs:
-  lint:
-    runs-on: ubuntu-latest
-
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: '18'
-          cache: 'npm'
-
-      - name: Install dependencies
-        run: npm ci
-
-      - name: Run ESLint
-        run: npm run lint:check
-
-      - name: Check Prettier formatting
-        run: npm run format:check
-
-      # - name: Security audit
-      #   run: npm audit --audit-level high
-
-      - name: Upload ESLint results
-        if: failure()
-        uses: github/super-linter@v4
-        env:
-          DEFAULT_BRANCH: main
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
