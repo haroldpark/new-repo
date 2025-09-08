@@ -54,13 +54,6 @@ jobs:
 
       # - name: Security audit
       #   run: npm audit --audit-level high
-
-      - name: Upload ESLint results
-        if: failure()
-        uses: github/super-linter@v4
-        env:
-          DEFAULT_BRANCH: main
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 # NOTE: BELOW SHOWS YOU HOW TO MAKE AN AUTO-COMMIT TO FIX FORMATTING
 
 # name: Auto Format Code with Prettier
