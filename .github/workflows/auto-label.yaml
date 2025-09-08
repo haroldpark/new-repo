@@ -1,3 +1,19 @@
+# 1. File-based labeling (PRs)
+# - Lists changed files on the PR and matches file paths/extensions against patterns to add component labels (e.g., frontend, backend, docs, ci/cd, database, ui/ux, mobile, etc.).
+# - Totals line changes across files and applies a size label: size/s, size/m, size/l, or size/xl.
+
+# 2. Title/body labeling (PRs)
+# - Parses PR title/body for conventional-commit keywords and other terms to add these labels:
+# - Type: type/feature, type/bugfix, type/docs, type/refactor, type/test, type/chore, type/performance
+# - Priority: priority/high, priority/medium, priority/normal
+# - Status: status/wip, breaking-change
+
+# 3. Issue content labeling
+# Parses issue title/body for keywords and adds: bug, enhancement, question, documentation, plus priority/component labels (e.g., frontend, backend, database) when matched.
+
+# 4. Needs-review
+# When a PR is opened, the workflow runs a gh pr edit … --add-label "needs-review" to mark it for review.
+
 name: Auto-Labeling
 
 on:
