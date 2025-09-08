@@ -153,6 +153,9 @@ jobs:
               });
             }
 
+      - name: Setup Github CLI
+        uses: cli/cli-action@v2
+
       # Add "needs-review" label to new PRs
       - name: Add review label to new PRs
         if: github.event_name == 'pull_request' && github.event.action == 'opened'
