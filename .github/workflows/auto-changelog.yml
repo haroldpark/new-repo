@@ -1,27 +1,27 @@
-name: Auto Changelog
+# name: Auto Changelog
 
-on:
-  push:
-    branches: [main]
+# on:
+#   push:
+#     branches: [main]
 
-jobs:
-  release-please:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: google-github-actions/release-please-action@v3
-        id: release
-        with:
-          token: ${{ secrets.GITHUB_TOKEN }}
-          release-type: node
-          package-name: your-package-name
-          changelog-types: '[
-            {"type":"feat","section":"Features","hidden":false},
-            {"type":"fix","section":"Bug Fixes","hidden":false},
-            {"type":"chore","section":"Miscellaneous","hidden":false},
-            {"type":"docs","section":"Documentation","hidden":false},
-            {"type":"style","section":"Styles","hidden":false},
-            {"type":"refactor","section":"Refactoring","hidden":false},
-            {"type":"perf","section":"Performance","hidden":false},
-            {"type":"test","section":"Testing","hidden":false},
-            {"type":"ci","section":"CI/CD","hidden":false}
-            ]'
+# jobs:
+#   release-please:
+#     runs-on: ubuntu-latest
+#     steps:
+#       - uses: google-github-actions/release-please-action@v3
+#         id: release
+#         with:
+#           token: ${{ secrets.GITHUB_TOKEN }}
+#           release-type: node
+#           package-name: your-package-name
+#           changelog-types: '[
+#             {"type":"feat","section":"Features","hidden":false},
+#             {"type":"fix","section":"Bug Fixes","hidden":false},
+#             {"type":"chore","section":"Miscellaneous","hidden":false},
+#             {"type":"docs","section":"Documentation","hidden":false},
+#             {"type":"style","section":"Styles","hidden":false},
+#             {"type":"refactor","section":"Refactoring","hidden":false},
+#             {"type":"perf","section":"Performance","hidden":false},
+#             {"type":"test","section":"Testing","hidden":false},
+#             {"type":"ci","section":"CI/CD","hidden":false}
+#             ]'
