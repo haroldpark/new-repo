@@ -1,0 +1,18 @@
+# Dependencies
+node_modules/
+
+# Build outputs
+dist/
+build/
+out/
+
+# Coverage reports
+coverage/
+
+# Environment / config
+*.config.js
+*.config.cjs
+*.config.mjs
+
+# Misc
+.next/
