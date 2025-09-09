@@ -1,51 +1,5 @@
 name: CI/CD - Build, Test, and Deploy React Application
 
-# What's possible?
-# 1. CI/CD - Build, Test, and Deploy
-# 2. Github automation - Auto-labeling, PR checks/workflows, release management
-# 3. Notifications - Discord/slack/telegram/email/sms/push notifications
-# 4. Others - compress images, manage artifacts, conditional steps (only if certain files are changed),
-# manual approvals (pause workflows and require human confirmation)
-
-#Code Quality & Security
-
-# Automated code formatting (Prettier, Black, gofmt) with auto-commits
-# Security vulnerability scanning (CodeQL, Snyk, dependency audits)
-# License compliance checking
-# Code coverage reporting with trend tracking
-# Static analysis and linting enforcement
-
-# Documentation & Communication
-
-# Auto-generate and update documentation from code comments
-# Create changelog entries from commit messages or PR labels
-# Update README badges automatically
-# Generate API documentation and deploy to GitHub Pages
-# Comment on PRs with build results, coverage changes, or performance metrics
-
-# Environment & Infrastructure Management
-
-# Spin up/tear down preview environments for each PR
-# Database migrations and rollbacks
-# Infrastructure as Code deployments (Terraform, CloudFormation)
-# Multi-environment promotion workflows (dev → staging → prod)
-# Automatic scaling based on usage patterns
-
-# Advanced Automation
-
-# Dependency updates with automated testing (Dependabot + custom workflows)
-# Performance benchmarking and regression detection
-# Cross-repository workflows (update multiple repos simultaneously)
-# Scheduled maintenance tasks (cleanup old branches, archive issues)
-# Auto-merge PRs that pass all checks (great for dependency updates)
-
-# Quality Gates & Compliance
-
-# Require specific reviewers based on changed files
-# Enforce commit message conventions
-# Block deployments during maintenance windows
-# Audit logging for compliance requirements
-
 on:
   push:
     branches: [main, dev]
@@ -53,29 +7,21 @@ on:
     branches: [main, dev]
 
 jobs:
-  if: false
   build-and-test:
     runs-on: ubuntu-latest
-
-    strategy:
-      matrix:
-        node-version: [22.x] # Test multiple Node versions
 
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      - name: Setup Node.js ${{ matrix.node-version }}
+      - name: Setup Node.js 22.x
         uses: actions/setup-node@v4
         with:
-          node-version: ${{ matrix.node-version }}
+          node-version: 22.x
           cache: 'npm'
 
       - name: Install dependencies
         run: npm ci
-
-      - name: Run linting
-        run: npm run lint
 
       - name: Run tests with coverage
         run: npm test -- --coverage --watchAll=false
@@ -113,11 +59,14 @@ jobs:
           name: build-files
           path: dist/
 
-      - name: Deploy to GitHub Pages
-        uses: peaceiris/actions-gh-pages@v4
+        # Deploy to Vercel
+      - name: Deploy to Vercel
+        uses: amondnet/vercel-action@v25
         with:
-          github_token: ${{ secrets.GITHUB_TOKEN }}
-          publish_dir: ./dist
+          vercel-token: ${{ secrets.VERCEL_TOKEN }}
+          vercel-org-id: ${{ secrets.ORG_ID }}
+          vercel-project-id: ${{ secrets.PROJECT_ID }}
+          working-directory: ./
 
       # Alternative deployment options (uncomment as needed):
 
@@ -132,15 +81,6 @@ jobs:
       #   env:
       #     NETLIFY_AUTH_TOKEN: ${{ secrets.NETLIFY_AUTH_TOKEN }}
       #     NETLIFY_SITE_ID: ${{ secrets.NETLIFY_SITE_ID }}
-
-      # Deploy to Vercel
-      # - name: Deploy to Vercel
-      #   uses: amondnet/vercel-action@v25
-      #   with:
-      #     vercel-token: ${{ secrets.VERCEL_TOKEN }}
-      #     vercel-org-id: ${{ secrets.ORG_ID }}
-      #     vercel-project-id: ${{ secrets.PROJECT_ID }}
-      #     working-directory: ./
 
       # Deploy to AWS S3
       # - name: Deploy to S3

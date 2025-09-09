@@ -24,14 +24,14 @@ jobs:
             {"type":"perf","section":"Performance","hidden":false},
             {"type":"test","section":"Testing","hidden":true},
             {"type":"ci","section":"CI/CD","hidden":true}
-          ]'
+            ]'
 
       - uses: actions/checkout@v3
         if: ${{ steps.release.outputs.release_created }}
 
       - uses: actions/setup-node@v3
         with:
-          node-version: 18
+          node-version: 23
         if: ${{ steps.release.outputs.release_created }}
 
       - run: npm ci

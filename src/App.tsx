@@ -1,30 +1,30 @@
-import "./App.css";
-import { Button } from "./components/Button";
+import './App.css';
+import { Button } from './components/Button';
 
 function App() {
   const variants = [
-    "default",
-    "destructive",
-    "outline",
-    "secondary",
-    "ghost",
-    "link",
+    'default',
+    'destructive',
+    'outline',
+    'secondary',
+    'ghost',
+    'link',
   ] as const;
-  const sizes = ["default", "sm", "lg"] as const;
+  const sizes = ['default', 'sm', 'lg'] as const;
 
   return (
     <div className="p-8">
-      <h1 className="text-3xl font-bold mb-8">Button Showcase</h1>
+      <h1 className="text-3xl font-bold mb-8">Button Showcase BLAH BLAH</h1>
 
       <div className="space-y-12">
         {/* Regular Buttons */}
-        {variants.map((variant) => (
+        {variants.map(variant => (
           <div key={variant}>
             <h2 className="text-xl font-semibold mb-4 capitalize">
               {variant} Variant
             </h2>
             <div className="grid grid-cols-3 gap-4">
-              {sizes.map((size) => (
+              {sizes.map(size => (
                 <div
                   key={`${variant}-${size}`}
                   className="flex flex-col items-start gap-2"
@@ -45,7 +45,7 @@ function App() {
         <div>
           <h2 className="text-xl font-semibold mb-4">Icon Buttons</h2>
           <div className="grid grid-cols-6 gap-4">
-            {variants.map((variant) => (
+            {variants.map(variant => (
               <div
                 key={`${variant}-icon`}
                 className="flex flex-col items-start gap-2"
