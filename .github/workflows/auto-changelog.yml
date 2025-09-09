@@ -1,4 +1,4 @@
-name: Release Please
+name: Auto Changelog
 
 on:
   push:
@@ -25,19 +25,3 @@ jobs:
             {"type":"test","section":"Testing","hidden":true},
             {"type":"ci","section":"CI/CD","hidden":true}
             ]'
-
-      - uses: actions/checkout@v3
-        if: ${{ steps.release.outputs.release_created }}
-
-      - uses: actions/setup-node@v3
-        with:
-          node-version: 23
-        if: ${{ steps.release.outputs.release_created }}
-
-      - run: npm ci
-        if: ${{ steps.release.outputs.release_created }}
-
-      - run: npm publish
-        env:
-          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
-        if: ${{ steps.release.outputs.release_created }}
