@@ -58,9 +58,9 @@ name: Code Coverage & Trend Tracking
 
 on:
   push:
-    branches: [main, develop]
+    branches: [main, develop, harold]
   pull_request:
-    branches: [main, develop]
+    branches: [main, develop, harold]
   schedule:
     # Generate daily coverage reports at 2 AM UTC
     - cron: '0 2 * * *'
@@ -73,7 +73,6 @@ on:
         default: false
 
 jobs:
-  if: false
   coverage:
     runs-on: ubuntu-latest
     permissions:
@@ -277,14 +276,14 @@ jobs:
           echo "BADGE_EMOJI=$EMOJI" >> $GITHUB_ENV
 
       # Upload coverage reports
-      - name: Upload coverage to Codecov
-        uses: codecov/codecov-action@v4
-        with:
-          file: ./coverage/lcov.info
-          flags: unittests
-          name: codecov-umbrella
-          fail_ci_if_error: false
-          token: ${{ secrets.CODECOV_TOKEN }}
+      # - name: Upload coverage to Codecov
+      #   uses: codecov/codecov-action@v4
+      #   with:
+      #     file: ./coverage/lcov.info
+      #     flags: unittests
+      #     name: codecov-umbrella
+      #     fail_ci_if_error: false
+      #     token: ${{ secrets.CODECOV_TOKEN }}
 
       # Alternative: Upload to Coveralls
       - name: Upload coverage to Coveralls
