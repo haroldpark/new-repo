@@ -1,3 +1,76 @@
+# name: Update README Badges
+
+# on:
+#   push:
+#     branches: [main]
+#   schedule:
+#     # Update badges daily at 6 AM UTC
+#     - cron: '0 6 * * *'
+#   workflow_dispatch:
+
+# jobs:
+#   update-badges:
+#     runs-on: ubuntu-latest
+#     permissions:
+#       contents: write
+#     steps:
+#       - name: Checkout
+#         uses: actions/checkout@v4
+
+#       - name: Update README badges
+#         run: |
+#           # Get repository info
+#           REPO="${{ github.repository }}"
+
+#           # Create badge section
+#           cat > badges.md << 'EOF'
+#           <!-- BADGES-START -->
+#           ![Build](https://img.shields.io/github/actions/workflow/status/REPO_PLACEHOLDER/ci.yml?style=flat-square)
+#           ![Version](https://img.shields.io/github/v/release/REPO_PLACEHOLDER?style=flat-square)
+#           ![License](https://img.shields.io/github/license/REPO_PLACEHOLDER?style=flat-square)
+#           ![Stars](https://img.shields.io/github/stars/REPO_PLACEHOLDER?style=flat-square)
+#           ![Issues](https://img.shields.io/github/issues/REPO_PLACEHOLDER?style=flat-square)
+#           ![Last Commit](https://img.shields.io/github/last-commit/REPO_PLACEHOLDER?style=flat-square)
+#           <!-- BADGES-END -->
+#           EOF
+
+#           # Replace placeholder with actual repo
+#           sed -i "s/REPO_PLACEHOLDER/$REPO/g" badges.md
+
+#           # Update README.md
+#           if [ -f README.md ]; then
+#             if grep -q "<!-- BADGES-START -->" README.md; then
+#               # Replace existing badges
+#               sed -i '/<!-- BADGES-START -->/,/<!-- BADGES-END -->/c\' README.md
+#               sed -i '/^$/d' README.md  # Remove empty line
+#               sed -i '1r badges.md' README.md
+#             else
+#               # Add badges after first heading
+#               sed -i '1r badges.md' README.md
+#             fi
+#           else
+#             # Create new README with badges
+#             echo "# ${{ github.event.repository.name }}" > README.md
+#             echo "" >> README.md
+#             cat badges.md >> README.md
+#           fi
+
+#           # Clean up
+#           rm badges.md
+
+#       - name: Commit changes
+#         run: |
+#           git config --local user.email "action@github.com"
+#           git config --local user.name "GitHub Action"
+
+#           if git diff --quiet README.md; then
+#             echo "No changes to commit"
+#             exit 0
+#           fi
+
+#           git add README.md
+#           git commit -m "Update README badges"
+#           git push
 name: Update README Badges
 
 on:
@@ -9,21 +82,21 @@ on:
   workflow_dispatch:
 
 jobs:
-  update-badges:
+  update-readme-badges:
     runs-on: ubuntu-latest
-    permissions:
-      contents: write
+
     steps:
-      - name: Checkout
+      - name: Checkout repo
         uses: actions/checkout@v4
 
-      - name: Update README badges
+      - name: Update README with badges
         run: |
-          # Get repository info
-          REPO="${{ github.repository }}"
+          set -euo pipefail
 
-          # Create badge section
-          cat > badges.md << 'EOF'
+          REPO="haroldpark/new-repo"
+
+          # Create badge section (placeholders for repo)
+          cat > badges.md <<'EOF'
           <!-- BADGES-START -->
           ![Build](https://img.shields.io/github/actions/workflow/status/REPO_PLACEHOLDER/ci.yml?style=flat-square)
           ![Version](https://img.shields.io/github/v/release/REPO_PLACEHOLDER?style=flat-square)
@@ -34,40 +107,46 @@ jobs:
           <!-- BADGES-END -->
           EOF
 
-          # Replace placeholder with actual repo
-          sed -i "s/REPO_PLACEHOLDER/$REPO/g" badges.md
+          # Replace placeholder safely (slashes in repo name won't break sed)
+          sed -i "s|REPO_PLACEHOLDER|$REPO|g" badges.md
 
-          # Update README.md
-          if [ -f README.md ]; then
-            if grep -q "<!-- BADGES-START -->" README.md; then
-              # Replace existing badges
-              sed -i '/<!-- BADGES-START -->/,/<!-- BADGES-END -->/c\' README.md
-              sed -i '/^$/d' README.md  # Remove empty line
-              sed -i '1r badges.md' README.md
-            else
-              # Add badges after first heading
-              sed -i '1r badges.md' README.md
-            fi
-          else
-            # Create new README with badges
-            echo "# ${{ github.event.repository.name }}" > README.md
-            echo "" >> README.md
-            cat badges.md >> README.md
-          fi
+          # Use Python to update README.md robustly
+          python - <<'PY'
+          from pathlib import Path
+          import re
 
-          # Clean up
-          rm badges.md
+          badges = Path('badges.md').read_text()
+          readme_path = Path('README.md')
+
+          if readme_path.exists():
+              content = readme_path.read_text()
+              if '<!-- BADGES-START -->' in content and '<!-- BADGES-END -->' in content:
+                  # Replace marker block
+                  content = re.sub(r'<!-- BADGES-START -->.*?<!-- BADGES-END -->',
+                                   badges, content, flags=re.S)
+              else:
+                  # Insert after first heading
+                  lines = content.splitlines()
+                  for i, line in enumerate(lines):
+                      if line.strip().startswith('#'):
+                          lines.insert(i + 1, '')
+                          lines.insert(i + 2, badges)
+                          break
+                  else:
+                      # No heading found, prepend
+                      lines.insert(0, badges + '\n')
+                  content = '\n'.join(lines)
+              readme_path.write_text(content)
+          else:
+              readme_path.write_text('# new-repo\n\n' + badges + '\n')
+
+          Path('badges.md').unlink()
+          PY
 
       - name: Commit changes
         run: |
-          git config --local user.email "action@github.com"
-          git config --local user.name "GitHub Action"
-
-          if git diff --quiet README.md; then
-            echo "No changes to commit"
-            exit 0
-          fi
-
+          git config user.name "github-actions"
+          git config user.email "github-actions@github.com"
           git add README.md
-          git commit -m "Update README badges"
+          git commit -m "chore: update badges in README" || echo "No changes to commit"
           git push
