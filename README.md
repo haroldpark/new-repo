@@ -1,5 +1,22 @@
 # React + TypeScript + Vite
 
+<!-- AUTO-GENERATED-BADGES-START -->
+[![Build Status](https://img.shields.io/github/actions/workflow/status/haroldpark/new-repo/ci.yml?branch=harold&style=flat-square&logo=github)](https://github.com/haroldpark/new-repo/actions)
+[![Version](https://img.shields.io/github/v/release/haroldpark/new-repo?style=flat-square&logo=github)](https://github.com/haroldpark/new-repo/releases)
+[![License](https://img.shields.io/badge/license-unknown-lightgrey?style=flat-square)](https://github.com/haroldpark/new-repo/blob/main/LICENSE)
+[![Language](https://img.shields.io/github/languages/top/haroldpark/new-repo?style=flat-square)](https://github.com/haroldpark/new-repo)
+[![Coverage](https://img.shields.io/badge/coverage-100%25-brightgreen?style=flat-square)](https://github.com/haroldpark/new-repo/actions)
+[![Stars](https://img.shields.io/github/stars/haroldpark/new-repo?style=flat-square&logo=github)](https://github.com/haroldpark/new-repo/stargazers)
+[![Forks](https://img.shields.io/github/forks/haroldpark/new-repo?style=flat-square&logo=github)](https://github.com/haroldpark/new-repo/network/members)
+[![Issues](https://img.shields.io/github/issues/haroldpark/new-repo?style=flat-square&logo=github)](https://github.com/haroldpark/new-repo/issues)
+[![Last Commit](https://img.shields.io/github/last-commit/haroldpark/new-repo?style=flat-square&logo=github)](https://github.com/haroldpark/new-repo/commits)
+[![Contributors](https://img.shields.io/github/contributors/haroldpark/new-repo?style=flat-square&logo=github)](https://github.com/haroldpark/new-repo/graphs/contributors)
+[![Node.js](https://img.shields.io/badge/node-v20.19.5-green?style=flat-square&logo=node.js)](https://nodejs.org)
+[![npm](https://img.shields.io/npm/v/vite-project?style=flat-square&logo=npm)](https://www.npmjs.com/package/vite-project)
+[![Downloads](https://img.shields.io/npm/dm/vite-project?style=flat-square&logo=npm)](https://www.npmjs.com/package/vite-project)
+<!-- AUTO-GENERATED-BADGES-END -->
+
+
 This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
 
 Currently, two official plugins are available:
