@@ -104,6 +104,7 @@ export default tseslint.config([
 - Spin up/tear down preview environments for each PR X <----
 - Database migrations and rollbacks
 - Infrastructure as Code deployments (Terraform, CloudFormation)
+- NPM Package Publishing
 - Multi-environment promotion workflows (dev → staging → prod)
 - Automatic scaling based on usage patterns
 

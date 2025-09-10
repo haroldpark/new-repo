@@ -18,7 +18,6 @@ on:
     types: [published]
 
 jobs:
-  if: false
   notify:
     runs-on: ubuntu-latest
     if: always()
