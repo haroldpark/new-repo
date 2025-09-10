@@ -8,16 +8,16 @@
 //   await expect(<).toBeTruthy();
 // });
 
-import { render, screen } from "@testing-library/react";
-import "@testing-library/jest-dom";
-import { Button } from "./Button";
+import { render, screen } from '@testing-library/react';
+import '@testing-library/jest-dom';
+import { Button } from './Button';
 
-test("loads and displays greeting", async () => {
+test('loads and displays greeting', async () => {
   render(
     <Button data-testid="test-button" variant="destructive">
       Delete
     </Button>
   );
-  expect(screen.getByText("Delete")).toBeDefined();
-  expect(screen.getByRole("button")).toHaveClass("bg-destructive");
+  expect(screen.getByText('Delete')).toBeDefined();
+  expect(screen.getByRole('button')).toHaveClass('bg-destructive');
 });

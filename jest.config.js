@@ -1,11 +1,14 @@
 export default {
-  testEnvironment: "jsdom",
-  setupFilesAfterEnv: ["<rootDir>/jest.setup.js"],
+  testEnvironment: 'jsdom',
+  setupFilesAfterEnv: ['<rootDir>/jest.setup.js'],
   moduleNameMapper: {
-    "^@/(.*)$": "<rootDir>/src/$1",
-    "\\.(css|less|scss|sass)$": "identity-obj-proxy",
+    '^@/(.*)$': '<rootDir>/src/$1',
+    '\\.(css|less|scss|sass)$': 'identity-obj-proxy',
   },
   transform: {
-    "^.+\\.(ts|tsx|js|jsx)$": "babel-jest",
+    '^.+\\.(ts|tsx|js|jsx)$': 'babel-jest',
   },
+  collectCoverage: true,
+  coverageDirectory: './coverage',
+  coverageReporters: ['json-summary', 'lcov', 'text'],
 };
