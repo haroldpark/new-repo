@@ -27,9 +27,9 @@ name: Auto-Update README Badges
 
 on:
   push:
-    branches: [main, develop]
+    branches: [main, develop, harold]
   pull_request:
-    branches: [main, develop]
+    branches: [main, develop, harold]
   release:
     types: [published]
   schedule:
