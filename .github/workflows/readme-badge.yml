@@ -487,7 +487,6 @@ jobs:
           EOF
 
       - name: Commit badge updates
-        if: steps.update_readme.outputs.changed == 'true'
         run: |
           git config --local user.email "action@github.com"
           git config --local user.name "GitHub Action"
