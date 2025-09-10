@@ -8,4 +8,7 @@ export default {
   transform: {
     '^.+\\.(ts|tsx|js|jsx)$': 'babel-jest',
   },
+  collectCoverage: true,
+  coverageDirectory: './coverage',
+  coverageReporters: ['json-summary', 'lcov', 'text'],
 };
