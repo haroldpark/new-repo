@@ -55,6 +55,7 @@ jobs:
         uses: actions/checkout@v4
         with:
           fetch-depth: 0
+          token: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Setup Node.js
         uses: actions/setup-node@v4
@@ -146,7 +147,6 @@ jobs:
       - name: Run tests and get coverage
         id: test_coverage
         if: steps.project_analysis.outputs.has_package_json == 'true'
-        continue-on-error: true
         run: |
           echo "🧪 Running tests to get coverage..."
 
@@ -492,17 +492,45 @@ jobs:
           git config --local user.email "action@github.com"
           git config --local user.name "GitHub Action"
 
-          git add README.md .github/badges/
-          git commit -m "🏷️ Auto-update README badges
+          # Add retry logic for race conditions
+          for i in {1..5}; do
+            echo "Attempt $i to commit and push changes..."
+            
+            # Pull latest changes to avoid conflicts
+            git pull --rebase origin ${{ github.ref_name }} || true
+            
+            # Check if we still have changes after rebase
+            if git diff --quiet README.md && git diff --quiet .github/badges/; then
+              echo "No changes after rebase, skipping commit"
+              exit 0
+            fi
+            
+            git add README.md .github/badges/
+            git commit -m "🏷️ Auto-update README badges
 
-          - Build: ${{ steps.workflow_status.outputs.latest_workflow_status }}
-          - Coverage: ${{ steps.test_coverage.outputs.coverage_percent }}%  
-          - Version: ${{ steps.repo_info.outputs.latest_release }}
-          - Stars: ${{ steps.repo_stats.outputs.stars }}
+            - Build: ${{ steps.workflow_status.outputs.latest_workflow_status }}
+            - Coverage: ${{ steps.test_coverage.outputs.coverage_percent }}%  
+            - Version: ${{ steps.repo_info.outputs.latest_release }}
+            - Stars: ${{ steps.repo_stats.outputs.stars }}
 
-          Updated: $(date)"
+            Updated: $(date)" || {
+              echo "Nothing to commit, changes may have been made by another workflow"
+              exit 0
+            }
 
-          git push
+            # Try to push with retry
+            if git push; then
+              echo "Successfully pushed changes on attempt $i"
+              exit 0
+            else
+              echo "Push failed on attempt $i, retrying..."
+              git reset --soft HEAD~1  # Undo the commit to retry
+              sleep $((i * 2))  # Exponential backoff
+            fi
+          done
+
+          echo "Failed to push after 5 attempts, giving up"
+          exit 1
 
       - name: Comment on PR with badge preview
         if: github.event_name == 'pull_request'
