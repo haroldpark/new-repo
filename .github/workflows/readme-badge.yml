@@ -1,29 +1,77 @@
-# 🏆 Key Benefits:
-# Zero Maintenance:
+# name: Update README Badges
 
-# Set it once, forget it forever
-# Automatically detects your project type
-# Updates badges as your project evolves
+# on:
+#   push:
+#     branches: [main]
+#   schedule:
+#     # Update badges daily at 6 AM UTC
+#     - cron: '0 6 * * *'
+#   workflow_dispatch:
 
-# Professional Appearance:
+# jobs:
+#   update-badges:
+#     runs-on: ubuntu-latest
+#     permissions:
+#       contents: write
+#     steps:
+#       - name: Checkout
+#         uses: actions/checkout@v4
 
-# Consistent, modern badge styling
-# Color-coded for instant status recognition
-# Includes relevant technology logos
+#       - name: Update README badges
+#         run: |
+#           # Get repository info
+#           REPO="${{ github.repository }}"
 
-# Real-Time Data:
+#           # Create badge section
+#           cat > badges.md << 'EOF'
+#           <!-- BADGES-START -->
+#           ![Build](https://img.shields.io/github/actions/workflow/status/REPO_PLACEHOLDER/ci.yml?style=flat-square)
+#           ![Version](https://img.shields.io/github/v/release/REPO_PLACEHOLDER?style=flat-square)
+#           ![License](https://img.shields.io/github/license/REPO_PLACEHOLDER?style=flat-square)
+#           ![Stars](https://img.shields.io/github/stars/REPO_PLACEHOLDER?style=flat-square)
+#           ![Issues](https://img.shields.io/github/issues/REPO_PLACEHOLDER?style=flat-square)
+#           ![Last Commit](https://img.shields.io/github/last-commit/REPO_PLACEHOLDER?style=flat-square)
+#           <!-- BADGES-END -->
+#           EOF
 
-# Always current GitHub statistics
-# Live build status from CI/CD
-# Actual test coverage percentages
+#           # Replace placeholder with actual repo
+#           sed -i "s/REPO_PLACEHOLDER/$REPO/g" badges.md
 
-# Smart Integration:
+#           # Update README.md
+#           if [ -f README.md ]; then
+#             if grep -q "<!-- BADGES-START -->" README.md; then
+#               # Replace existing badges
+#               sed -i '/<!-- BADGES-START -->/,/<!-- BADGES-END -->/c\' README.md
+#               sed -i '/^$/d' README.md  # Remove empty line
+#               sed -i '1r badges.md' README.md
+#             else
+#               # Add badges after first heading
+#               sed -i '1r badges.md' README.md
+#             fi
+#           else
+#             # Create new README with badges
+#             echo "# ${{ github.event.repository.name }}" > README.md
+#             echo "" >> README.md
+#             cat badges.md >> README.md
+#           fi
 
-# Works with any project structure
-# Preserves existing README content
-# Shows previews in pull requests
+#           # Clean up
+#           rm badges.md
 
-name: Auto-Update README Badges
+#       - name: Commit changes
+#         run: |
+#           git config --local user.email "action@github.com"
+#           git config --local user.name "GitHub Action"
+
+#           if git diff --quiet README.md; then
+#             echo "No changes to commit"
+#             exit 0
+#           fi
+
+#           git add README.md
+#           git commit -m "Update README badges"
+#           git push
+name: Update README Badges
 
 on:
   push:
@@ -36,22 +84,15 @@ on:
     # Update badges daily at 6 AM UTC
     - cron: '0 6 * * *'
   workflow_dispatch:
-    inputs:
-      force_update:
-        description: 'Force update all badges'
-        required: false
-        type: boolean
-        default: false
 
 jobs:
-  update-badges:
+  update-readme-badges:
     runs-on: ubuntu-latest
     permissions:
       contents: write
-      pull-requests: write
-      actions: read
+
     steps:
-      - name: Checkout code
+      - name: Checkout repo
         uses: actions/checkout@v4
         with:
           fetch-depth: 0
@@ -354,118 +395,21 @@ jobs:
           fi
 
       - name: Update README with badges
-        id: update_readme
         run: |
-          echo "📝 Updating README with badges..."
+          set -euo pipefail
 
-          # Create badge markdown
-          create_badge_section() {
-            local badges=""
-            
-            # Essential badges
-            badges="${badges}[![Build Status](${{ steps.generate_badges.outputs.build_badge }})](${{ github.server_url }}/${{ github.repository }}/actions)\n"
-            badges="${badges}[![Version](${{ steps.generate_badges.outputs.version_badge }})](${{ github.server_url }}/${{ github.repository }}/releases)\n"
-            badges="${badges}[![License](${{ steps.generate_badges.outputs.license_badge }})](${{ github.server_url }}/${{ github.repository }}/blob/main/LICENSE)\n"
-            
-            # Language and coverage
-            badges="${badges}[![Language](${{ steps.generate_badges.outputs.language_badge }})](${{ github.server_url }}/${{ github.repository }})\n"
-            badges="${badges}[![Coverage](${{ steps.generate_badges.outputs.coverage_badge }})](${{ github.server_url }}/${{ github.repository }}/actions)\n"
-            
-            # GitHub stats
-            badges="${badges}[![Stars](${{ steps.generate_badges.outputs.stars_badge }})](${{ github.server_url }}/${{ github.repository }}/stargazers)\n"
-            badges="${badges}[![Forks](${{ steps.generate_badges.outputs.forks_badge }})](${{ github.server_url }}/${{ github.repository }}/network/members)\n"
-            badges="${badges}[![Issues](${{ steps.generate_badges.outputs.issues_badge }})](${{ github.server_url }}/${{ github.repository }}/issues)\n"
-            
-            # Activity badges
-            badges="${badges}[![Last Commit](${{ steps.generate_badges.outputs.last_commit_badge }})](${{ github.server_url }}/${{ github.repository }}/commits)\n"
-            badges="${badges}[![Contributors](${{ steps.generate_badges.outputs.contributors_badge }})](${{ github.server_url }}/${{ github.repository }}/graphs/contributors)\n"
-            
-            # Optional technology-specific badges
-            if [ "${{ steps.project_analysis.outputs.has_package_json }}" = "true" ]; then
-              badges="${badges}[![Node.js](${{ steps.generate_badges.outputs.node_badge }})](https://nodejs.org)\n"
-            fi
-            
-            if [ "${{ steps.project_analysis.outputs.npm_exists }}" = "true" ]; then
-              badges="${badges}[![npm](${{ steps.generate_badges.outputs.npm_badge }})](https://www.npmjs.com/package/${{ steps.project_analysis.outputs.package_name }})\n"
-              badges="${badges}[![Downloads](${{ steps.generate_badges.outputs.npm_downloads }})](https://www.npmjs.com/package/${{ steps.project_analysis.outputs.package_name }})\n"
-            fi
-            
-            if [ "${{ steps.project_analysis.outputs.has_dockerfile }}" = "true" ]; then
-              badges="${badges}[![Docker](${{ steps.generate_badges.outputs.docker_badge }})](${{ github.server_url }}/${{ github.repository }})\n"
-            fi
-            
-            echo "$badges"
-          }
+          REPO="haroldpark/new-repo"
 
-          # Read current README
-          if [ ! -f README.md ]; then
-            echo "# ${{ steps.repo_info.outputs.repo_name }}" > README.md
-            echo "" >> README.md
-            echo "<!-- AUTO-GENERATED-BADGES-START -->" >> README.md
-            echo "<!-- AUTO-GENERATED-BADGES-END -->" >> README.md
-          fi
-
-          README_CONTENT=$(cat README.md)
-
-          # Generate new badge section
-          BADGE_SECTION="<!-- AUTO-GENERATED-BADGES-START -->\n"
-          BADGE_SECTION="${BADGE_SECTION}$(create_badge_section)"
-          BADGE_SECTION="${BADGE_SECTION}<!-- AUTO-GENERATED-BADGES-END -->"
-
-          # Update README
-          if echo "$README_CONTENT" | grep -q "<!-- AUTO-GENERATED-BADGES-START -->"; then
-            # Replace existing badge section
-            node -e "
-              const fs = require('fs');
-              let content = fs.readFileSync('README.md', 'utf8');
-              const newBadges = \`$BADGE_SECTION\`;
-              content = content.replace(/<!-- AUTO-GENERATED-BADGES-START -->[\s\S]*?<!-- AUTO-GENERATED-BADGES-END -->/, newBadges);
-              fs.writeFileSync('README.md', content);
-            "
-          else
-            # Add badge section at the top (after title)
-            node -e "
-              const fs = require('fs');
-              let content = fs.readFileSync('README.md', 'utf8');
-              const lines = content.split('\n');
-              const newBadges = \`$BADGE_SECTION\`;
-              
-              // Find the first heading and insert badges after it
-              let insertIndex = 1;
-              for (let i = 0; i < lines.length; i++) {
-                if (lines[i].startsWith('#')) {
-                  insertIndex = i + 1;
-                  break;
-                }
-              }
-              
-              lines.splice(insertIndex, 0, '', newBadges.replace(/\\\\n/g, '\n'), '');
-              fs.writeFileSync('README.md', lines.join('\n'));
-            "
-          fi
-
-          # Check if README was actually changed
-          if git diff --quiet README.md; then
-            echo "changed=false" >> $GITHUB_OUTPUT
-            echo "ℹ️ No badge changes needed"
-          else
-            echo "changed=true" >> $GITHUB_OUTPUT
-            echo "✅ README badges updated"
-          fi
-
-      - name: Create badge files for static hosting
-        run: |
-          echo "💾 Creating badge cache files..."
-          mkdir -p .github/badges
-
-          # Create JSON files for shields.io dynamic badges
-          cat > .github/badges/coverage.json << EOF
-          {
-            "schemaVersion": 1,
-            "label": "coverage",
-            "message": "${{ steps.test_coverage.outputs.coverage_percent }}%",
-            "color": "$([ ${{ steps.test_coverage.outputs.coverage_percent }} -ge 80 ] && echo 'green' || echo 'red')"
-          }
+          # Create badge section (placeholders for repo)
+          cat > badges.md <<'EOF'
+          <!-- BADGES-START -->
+          ![Build](https://img.shields.io/github/actions/workflow/status/REPO_PLACEHOLDER/ci.yml?style=flat-square)
+          ![Version](https://img.shields.io/github/v/release/REPO_PLACEHOLDER?style=flat-square)
+          ![License](https://img.shields.io/github/license/REPO_PLACEHOLDER?style=flat-square)
+          ![Stars](https://img.shields.io/github/stars/REPO_PLACEHOLDER?style=flat-square)
+          ![Issues](https://img.shields.io/github/issues/REPO_PLACEHOLDER?style=flat-square)
+          ![Last Commit](https://img.shields.io/github/last-commit/REPO_PLACEHOLDER?style=flat-square)
+          <!-- BADGES-END -->
           EOF
 
           cat > .github/badges/build.json << EOF

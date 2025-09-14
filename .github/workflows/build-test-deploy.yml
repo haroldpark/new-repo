@@ -1,4 +1,4 @@
-name: CI/CD - Build, Test, and Deploy React Application
+name: CI/CD - Build, Test, and Deploy
 
 on:
   push:
