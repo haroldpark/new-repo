@@ -1,5 +1,20 @@
 # React + TypeScript + Vite
 
+<!-- BADGES-START -->
+![Build](https://img.shields.io/github/actions/workflow/status/haroldpark/new-repo/ci.yml?style=flat-square)
+![Version](https://img.shields.io/github/v/release/haroldpark/new-repo?style=flat-square)
+![License](https://img.shields.io/github/license/haroldpark/new-repo?style=flat-square)
+![Stars](https://img.shields.io/github/stars/haroldpark/new-repo?style=flat-square)
+![Issues](https://img.shields.io/github/issues/haroldpark/new-repo?style=flat-square)
+![Last Commit](https://img.shields.io/github/last-commit/haroldpark/new-repo?style=flat-square)
+<!-- BADGES-END -->
+
+
+
+
+
+
+
 This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
 
 Currently, two official plugins are available:
