@@ -37,8 +37,12 @@ jobs:
 
       - name: Commit optimized images
         run: |
-          git config --global user.name "github-actions"
-          git config --global user.email "github-actions@github.com"
+          git config --global user.name "github-actions[bot]"
+          git config --global user.email "github-actions[bot]@users.noreply.github.com"
+
+          git fetch origin main
+          git rebase origin/main  # safer than merge
+
           git add assets
           git diff --cached --quiet || git commit -m "chore: optimize images"
-          git push
+          git push origin HEAD:main
