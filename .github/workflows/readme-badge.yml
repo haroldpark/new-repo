@@ -100,12 +100,13 @@ jobs:
           # Create badge section (placeholders for repo)
           cat > badges.md <<'EOF'
           <!-- BADGES-START -->
-          ![Build](https://img.shields.io/github/actions/workflow/status/REPO_PLACEHOLDER/ci.yml?style=flat-square)
+          ![Build](https://img.shields.io/github/actions/workflow/status/REPO_PLACEHOLDER/build-test-deploy.yml?style=flat-square)
           ![Version](https://img.shields.io/github/v/release/REPO_PLACEHOLDER?style=flat-square)
           ![License](https://img.shields.io/github/license/REPO_PLACEHOLDER?style=flat-square)
           ![Stars](https://img.shields.io/github/stars/REPO_PLACEHOLDER?style=flat-square)
           ![Issues](https://img.shields.io/github/issues/REPO_PLACEHOLDER?style=flat-square)
           ![Last Commit](https://img.shields.io/github/last-commit/REPO_PLACEHOLDER?style=flat-square)
+          ![Repo Size](https://img.shields.io/github/repo-size/REPO_PLACEHOLDER?style=flat-square)
           <!-- BADGES-END -->
           EOF
 
