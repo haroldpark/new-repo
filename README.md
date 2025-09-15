@@ -10,19 +10,6 @@
 ![Repo Size](https://img.shields.io/github/repo-size/haroldpark/new-repo?style=flat-square)
 <!-- BADGES-END -->
 
-
-
-
-
-
-
-
-
-
-
-
-
-
 This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
 
 Currently, two official plugins are available:
