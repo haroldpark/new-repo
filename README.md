@@ -1,13 +1,15 @@
 # React + TypeScript + Vite
 
 <!-- BADGES-START -->
-![Build](https://img.shields.io/github/actions/workflow/status/haroldpark/new-repo/ci.yml?style=flat-square)
+![Build](https://img.shields.io/github/actions/workflow/status/haroldpark/new-repo/build-test-deploy.yml?style=flat-square)
 ![Version](https://img.shields.io/github/v/release/haroldpark/new-repo?style=flat-square)
 ![License](https://img.shields.io/github/license/haroldpark/new-repo?style=flat-square)
 ![Stars](https://img.shields.io/github/stars/haroldpark/new-repo?style=flat-square)
 ![Issues](https://img.shields.io/github/issues/haroldpark/new-repo?style=flat-square)
 ![Last Commit](https://img.shields.io/github/last-commit/haroldpark/new-repo?style=flat-square)
+![Repo Size](https://img.shields.io/github/repo-size/haroldpark/new-repo?style=flat-square)
 <!-- BADGES-END -->
+
 
 
 
