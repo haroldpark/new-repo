@@ -1,7 +1,6 @@
 import type { Meta, StoryObj } from '@storybook/react-vite';
 
-import { fn } from 'storybook/test';
-
+import { fn, expect, userEvent, within } from 'storybook/test';
 import { Button } from './Button';
 
 // More on how to set up stories at: https://storybook.js.org/docs/writing-stories#default-export
@@ -115,3 +114,24 @@ export const LargeVariant: Story = {
     children: 'Button',
   },
 };
+
+// Interactive Tests
+export const ClickableButton: Story = {
+  args: {
+    variant: 'default',
+    children: 'Click Me',
+    onClick: fn(),
+  },
+  play: async ({ args, canvasElement }) => {
+    const canvas = within(canvasElement);
+    const button = canvas.getByRole('button', { name: /click me/i });
+
+    // Test button is visible and enabled
+    await expect(button).toBeInTheDocument();
+    await expect(button).toBeEnabled();
+
+    // Test click interaction
+    await userEvent.click(button);
+    await expect(args.onClick).toHaveBeenCalled();
+  },
+} satisfies Story;

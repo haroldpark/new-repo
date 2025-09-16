@@ -18,6 +18,6 @@ test('loads and displays greeting', async () => {
       Delete
     </Button>
   );
-  expect(screen.getByText('Delete')).toBeDefined();
+  expect(screen.getByText('blah')).toBeDefined();
   expect(screen.getByRole('button')).toHaveClass('bg-destructive');
 });
