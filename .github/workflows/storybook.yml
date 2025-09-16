@@ -1,0 +1,40 @@
+name: Storybook & Chromatic Deployment
+
+on:
+  push:
+    branches: [main, develop]
+    paths:
+      - 'src/components/**'
+      - '.storybook/**'
+      - 'package.json'
+      - 'package-lock.json'
+  pull_request:
+    branches: [main, develop]
+    paths:
+      - 'src/components/**'
+      - 'src/stories/**'
+      - '.storybook/**'
+      - 'package.json'
+      - 'package-lock.json'
+
+jobs:
+  chromatic-deployment:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0 # Required for Chromatic baseline detection
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22.x'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Deploy to Chromatic
+        run: npm run chromatic
