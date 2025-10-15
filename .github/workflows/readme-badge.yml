@@ -2,11 +2,7 @@ name: Update README Badges
 
 on:
   push:
-    branches: [main, develop, harold]
-  pull_request:
-    branches: [main, develop, harold]
-  release:
-    types: [published]
+    branches: [main]
   schedule:
     # Update badges daily at 6 AM UTC
     - cron: '0 6 * * *'
@@ -17,254 +13,49 @@ jobs:
     runs-on: ubuntu-latest
     permissions:
       contents: write
+<<<<<<< Updated upstream
 
     steps:
       - name: Checkout repo
+=======
+    steps:
+      - name: Checkout
+>>>>>>> Stashed changes
         uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
-          token: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: '20'
-          cache: 'npm'
-
-      - name: Install dependencies
+      - name: Update README badges
         run: |
-          if [ -f package.json ]; then
-            npm ci || npm install
-          fi
+          # Get repository info
+          REPO="${{ github.repository }}"
 
-      - name: Get repository information
-        id: repo_info
-        run: |
-          # Get repository details
-          REPO_NAME="${{ github.repository }}"
-          REPO_OWNER="${{ github.repository_owner }}"
-          REPO_FULL_NAME="${REPO_NAME}"
-          BRANCH_NAME="${{ github.ref_name }}"
+          # Create badge section
+          cat > badges.md << 'EOF'
+          <!-- BADGES-START -->
+          ![Build](https://img.shields.io/github/actions/workflow/status/REPO_PLACEHOLDER/ci.yml?style=flat-square)
+          ![Version](https://img.shields.io/github/v/release/REPO_PLACEHOLDER?style=flat-square)
+          ![License](https://img.shields.io/github/license/REPO_PLACEHOLDER?style=flat-square)
+          ![Stars](https://img.shields.io/github/stars/REPO_PLACEHOLDER?style=flat-square)
+          ![Issues](https://img.shields.io/github/issues/REPO_PLACEHOLDER?style=flat-square)
+          ![Last Commit](https://img.shields.io/github/last-commit/REPO_PLACEHOLDER?style=flat-square)
+          <!-- BADGES-END -->
+          EOF
 
-          echo "repo_name=$REPO_NAME" >> $GITHUB_OUTPUT
-          echo "repo_owner=$REPO_OWNER" >> $GITHUB_OUTPUT
-          echo "repo_full_name=$REPO_FULL_NAME" >> $GITHUB_OUTPUT
-          echo "branch_name=$BRANCH_NAME" >> $GITHUB_OUTPUT
+          # Replace placeholder with actual repo
+          sed -i "s/REPO_PLACEHOLDER/$REPO/g" badges.md
 
-          # Get latest release
-          LATEST_RELEASE=$(gh release list --limit 1 --json tagName --jq '.[0].tagName' 2>/dev/null || echo "v0.0.0")
-          echo "latest_release=$LATEST_RELEASE" >> $GITHUB_OUTPUT
-
-          # Check if repo is public or private
-          REPO_VISIBILITY=$(gh repo view $REPO_FULL_NAME --json visibility --jq '.visibility')
-          echo "repo_visibility=$REPO_VISIBILITY" >> $GITHUB_OUTPUT
-
-          echo "📊 Repository: $REPO_FULL_NAME"
-          echo "🏷️ Latest Release: $LATEST_RELEASE" 
-          echo "👁️ Visibility: $REPO_VISIBILITY"
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-
-      - name: Analyze project structure
-        id: project_analysis
-        run: |
-          echo "🔍 Analyzing project structure..."
-
-          # Detect project type and technologies
-          HAS_PACKAGE_JSON=$([[ -f package.json ]] && echo "true" || echo "false")
-          HAS_DOCKERFILE=$([[ -f Dockerfile ]] && echo "true" || echo "false")
-          HAS_PYTHON=$([[ -f requirements.txt || -f setup.py || -f pyproject.toml ]] && echo "true" || echo "false")
-          HAS_JAVA=$([[ -f pom.xml || -f build.gradle ]] && echo "true" || echo "false")
-          HAS_GO=$([[ -f go.mod ]] && echo "true" || echo "false")
-          HAS_RUST=$([[ -f Cargo.toml ]] && echo "true" || echo "false")
-
-          echo "has_package_json=$HAS_PACKAGE_JSON" >> $GITHUB_OUTPUT
-          echo "has_dockerfile=$HAS_DOCKERFILE" >> $GITHUB_OUTPUT
-          echo "has_python=$HAS_PYTHON" >> $GITHUB_OUTPUT
-          echo "has_java=$HAS_JAVA" >> $GITHUB_OUTPUT
-          echo "has_go=$HAS_GO" >> $GITHUB_OUTPUT
-          echo "has_rust=$HAS_RUST" >> $GITHUB_OUTPUT
-
-          # Get package.json info if exists
-          if [ -f package.json ]; then
-            NODE_VERSION=$(node -e "console.log(process.version)" 2>/dev/null || echo "unknown")
-            PKG_VERSION=$(node -e "console.log(JSON.parse(require('fs').readFileSync('package.json')).version)" 2>/dev/null || echo "0.0.0")
-            PKG_LICENSE=$(node -e "console.log(JSON.parse(require('fs').readFileSync('package.json')).license || 'Unknown')" 2>/dev/null || echo "Unknown")
-            PKG_NAME=$(node -e "console.log(JSON.parse(require('fs').readFileSync('package.json')).name)" 2>/dev/null || echo "unknown")
-            
-            echo "node_version=$NODE_VERSION" >> $GITHUB_OUTPUT
-            echo "package_version=$PKG_VERSION" >> $GITHUB_OUTPUT
-            echo "package_license=$PKG_LICENSE" >> $GITHUB_OUTPUT
-            echo "package_name=$PKG_NAME" >> $GITHUB_OUTPUT
-            
-            # Check if it's published to npm
-            NPM_EXISTS=$(npm view $PKG_NAME version 2>/dev/null || echo "")
-            echo "npm_exists=$([[ -n \"$NPM_EXISTS\" ]] && echo \"true\" || echo \"false\")" >> $GITHUB_OUTPUT
-            echo "npm_version=$NPM_EXISTS" >> $GITHUB_OUTPUT
-          fi
-
-          # Count files and get repository stats
-          JS_FILES=$(find . -name "*.js" -o -name "*.jsx" -o -name "*.ts" -o -name "*.tsx" -not -path "*/node_modules/*" | wc -l)
-          PY_FILES=$(find . -name "*.py" | wc -l)
-          TOTAL_LINES=$(find . -type f \( -name "*.js" -o -name "*.jsx" -o -name "*.ts" -o -name "*.tsx" -o -name "*.py" -o -name "*.java" -o -name "*.go" \) -not -path "*/node_modules/*" -not -path "*/.git/*" -exec wc -l {} + 2>/dev/null | tail -1 | awk '{print $1}' || echo "0")
-
-          echo "js_files=$JS_FILES" >> $GITHUB_OUTPUT
-          echo "py_files=$PY_FILES" >> $GITHUB_OUTPUT
-          echo "total_lines=$TOTAL_LINES" >> $GITHUB_OUTPUT
-
-      - name: Run tests and get coverage
-        id: test_coverage
-        if: steps.project_analysis.outputs.has_package_json == 'true'
-        run: |
-          echo "🧪 Running tests to get coverage..."
-
-          # Try to run tests with coverage
-          if npm run test:coverage 2>/dev/null || npm test -- --coverage 2>/dev/null; then
-            # Try to extract coverage from different possible locations
-            COVERAGE_PERCENT="0"
-            
-            if [ -f coverage/coverage-summary.json ]; then
-              COVERAGE_PERCENT=$(node -e "
-                const fs = require('fs');
-                try {
-                  const coverage = JSON.parse(fs.readFileSync('coverage/coverage-summary.json', 'utf8'));
-                  console.log(coverage.total.lines.pct || 0);
-                } catch(e) { console.log(0); }
-              ")
-            elif [ -f coverage/lcov.info ]; then
-              # Parse lcov file for coverage
-              COVERAGE_PERCENT=$(awk '/^SF:/ { files++ } /^LH:/ { hit+=$2 } /^LF:/ { total+=$2 } END { if(total>0) print int(hit/total*100); else print 0 }' coverage/lcov.info)
-            fi
-            
-            echo "coverage_percent=$COVERAGE_PERCENT" >> $GITHUB_OUTPUT
-            echo "has_coverage=true" >> $GITHUB_OUTPUT
-            echo "📊 Test coverage: ${COVERAGE_PERCENT}%"
-          else
-            echo "has_coverage=false" >> $GITHUB_OUTPUT
-            echo "⚠️ Could not determine test coverage"
-          fi
-
-      - name: Get workflow status
-        id: workflow_status
-        run: |
-          echo "🔄 Getting workflow status..."
-
-          # Get latest workflow runs
-          LATEST_WORKFLOW_STATUS=$(gh run list --limit 1 --json conclusion --jq '.[0].conclusion' 2>/dev/null || echo "unknown")
-
-          # Count workflow runs in last 30 days
-          WORKFLOW_RUNS_COUNT=$(gh run list --created "$(date -d '30 days ago' '+%Y-%m-%d')" --json id | jq length 2>/dev/null || echo "0")
-
-          echo "latest_workflow_status=$LATEST_WORKFLOW_STATUS" >> $GITHUB_OUTPUT
-          echo "workflow_runs_count=$WORKFLOW_RUNS_COUNT" >> $GITHUB_OUTPUT
-
-          echo "🏃 Latest workflow: $LATEST_WORKFLOW_STATUS"
-          echo "📈 Runs (30 days): $WORKFLOW_RUNS_COUNT"
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-
-      - name: Get repository statistics
-        id: repo_stats
-        run: |
-          echo "📊 Gathering repository statistics..."
-
-          # Get repository stats using GitHub API
-          REPO_STATS=$(gh api repos/${{ steps.repo_info.outputs.repo_full_name }} --jq '{
-            stars: .stargazers_count,
-            forks: .forks_count,
-            issues: .open_issues_count,
-            watchers: .subscribers_count,
-            size: .size,
-            language: .language,
-            created_at: .created_at,
-            updated_at: .updated_at
-          }')
-
-          STARS=$(echo "$REPO_STATS" | jq -r '.stars')
-          FORKS=$(echo "$REPO_STATS" | jq -r '.forks')
-          ISSUES=$(echo "$REPO_STATS" | jq -r '.issues')
-          LANGUAGE=$(echo "$REPO_STATS" | jq -r '.language // "Unknown"')
-
-          echo "stars=$STARS" >> $GITHUB_OUTPUT
-          echo "forks=$FORKS" >> $GITHUB_OUTPUT
-          echo "issues=$ISSUES" >> $GITHUB_OUTPUT
-          echo "language=$LANGUAGE" >> $GITHUB_OUTPUT
-
-          # Get commit activity
-          COMMIT_COUNT=$(git rev-list --count HEAD 2>/dev/null || echo "0")
-          LAST_COMMIT=$(git log -1 --format=%ci 2>/dev/null || echo "unknown")
-          CONTRIBUTORS=$(git shortlog -sn HEAD | wc -l 2>/dev/null || echo "1")
-
-          echo "commit_count=$COMMIT_COUNT" >> $GITHUB_OUTPUT
-          echo "last_commit=$LAST_COMMIT" >> $GITHUB_OUTPUT
-          echo "contributors=$CONTRIBUTORS" >> $GITHUB_OUTPUT
-
-          echo "⭐ Stars: $STARS, 🍴 Forks: $FORKS, 🐛 Issues: $ISSUES"
-          echo "💾 Commits: $COMMIT_COUNT, 👥 Contributors: $CONTRIBUTORS"
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-
-      - name: Generate badge URLs
-        id: generate_badges
-        run: |
-          echo "🏷️ Generating badge URLs..."
-
-          REPO_FULL_NAME="${{ steps.repo_info.outputs.repo_full_name }}"
-          REPO_OWNER="${{ steps.repo_info.outputs.repo_owner }}"
-          BRANCH_NAME="${{ steps.repo_info.outputs.branch_name }}"
-
-          # Base URLs
-          SHIELDS_BASE="https://img.shields.io"
-          GITHUB_BASE="https://github.com"
-
-          # Build status badge
-          BUILD_BADGE="${SHIELDS_BASE}/github/actions/workflow/status/${REPO_FULL_NAME}/ci.yml?branch=${BRANCH_NAME}&style=flat-square&logo=github"
-          if [ "${{ steps.workflow_status.outputs.latest_workflow_status }}" = "success" ]; then
-            BUILD_BADGE_ALT="${SHIELDS_BASE}/badge/build-passing-brightgreen?style=flat-square&logo=github"
-          elif [ "${{ steps.workflow_status.outputs.latest_workflow_status }}" = "failure" ]; then
-            BUILD_BADGE_ALT="${SHIELDS_BASE}/badge/build-failing-red?style=flat-square&logo=github"
-          else
-            BUILD_BADGE_ALT="${SHIELDS_BASE}/badge/build-unknown-lightgrey?style=flat-square&logo=github"
-          fi
-
-          # Version badge
-          VERSION="${{ steps.repo_info.outputs.latest_release }}"
-          VERSION_BADGE="${SHIELDS_BASE}/github/v/release/${REPO_FULL_NAME}?style=flat-square&logo=github"
-          if [ "$VERSION" = "v0.0.0" ]; then
-            VERSION_BADGE="${SHIELDS_BASE}/badge/version-dev-orange?style=flat-square"
-          fi
-
-          # License badge
-          LICENSE="${{ steps.project_analysis.outputs.package_license }}"
-          LICENSE_BADGE="${SHIELDS_BASE}/github/license/${REPO_FULL_NAME}?style=flat-square"
-          if [ "$LICENSE" = "Unknown" ]; then
-            LICENSE_BADGE="${SHIELDS_BASE}/badge/license-unknown-lightgrey?style=flat-square"
-          fi
-
-          # Language badge
-          LANGUAGE="${{ steps.repo_stats.outputs.language }}"
-          if [ "$LANGUAGE" != "Unknown" ]; then
-            LANGUAGE_BADGE="${SHIELDS_BASE}/github/languages/top/${REPO_FULL_NAME}?style=flat-square"
-          else
-            LANGUAGE_BADGE="${SHIELDS_BASE}/badge/language-mixed-blue?style=flat-square"
-          fi
-
-          # Coverage badge
-          if [ "${{ steps.test_coverage.outputs.has_coverage }}" = "true" ]; then
-            COVERAGE_PERCENT="${{ steps.test_coverage.outputs.coverage_percent }}"
-            if [ "$COVERAGE_PERCENT" -ge 90 ]; then
-              COLOR="brightgreen"
-            elif [ "$COVERAGE_PERCENT" -ge 80 ]; then
-              COLOR="green"
-            elif [ "$COVERAGE_PERCENT" -ge 70 ]; then
-              COLOR="yellow"
-            elif [ "$COVERAGE_PERCENT" -ge 60 ]; then
-              COLOR="orange"
+          # Update README.md
+          if [ -f README.md ]; then
+            if grep -q "<!-- BADGES-START -->" README.md; then
+              # Replace existing badges
+              sed -i '/<!-- BADGES-START -->/,/<!-- BADGES-END -->/c\' README.md
+              sed -i '/^$/d' README.md  # Remove empty line
+              sed -i '1r badges.md' README.md
             else
-              COLOR="red"
+              # Add badges after first heading
+              sed -i '1r badges.md' README.md
             fi
-            COVERAGE_BADGE="${SHIELDS_BASE}/badge/coverage-${COVERAGE_PERCENT}%25-${COLOR}?style=flat-square"
           else
+<<<<<<< Updated upstream
             COVERAGE_BADGE="${SHIELDS_BASE}/badge/coverage-unknown-lightgrey?style=flat-square"
           fi
 
@@ -359,124 +150,27 @@ jobs:
           EOF
 
       - name: Commit badge updates
+=======
+            # Create new README with badges
+            echo "# ${{ github.event.repository.name }}" > README.md
+            echo "" >> README.md
+            cat badges.md >> README.md
+          fi
+
+          # Clean up
+          rm badges.md
+
+      - name: Commit changes
+>>>>>>> Stashed changes
         run: |
           git config --local user.email "action@github.com"
           git config --local user.name "GitHub Action"
 
-          # Add retry logic for race conditions
-          for i in {1..5}; do
-            echo "Attempt $i to commit and push changes..."
-            
-            # Pull latest changes to avoid conflicts
-            git pull --rebase origin ${{ github.ref_name }} || true
-            
-            # Check if we still have changes after rebase
-            if git diff --quiet README.md && git diff --quiet .github/badges/; then
-              echo "No changes after rebase, skipping commit"
-              exit 0
-            fi
-            
-            git add README.md .github/badges/
-            git commit -m "🏷️ Auto-update README badges
-
-            - Build: ${{ steps.workflow_status.outputs.latest_workflow_status }}
-            - Coverage: ${{ steps.test_coverage.outputs.coverage_percent }}%  
-            - Version: ${{ steps.repo_info.outputs.latest_release }}
-            - Stars: ${{ steps.repo_stats.outputs.stars }}
-
-            Updated: $(date)" || {
-              echo "Nothing to commit, changes may have been made by another workflow"
-              exit 0
-            }
-
-            # Try to push with retry
-            if git push; then
-              echo "Successfully pushed changes on attempt $i"
-              exit 0
-            else
-              echo "Push failed on attempt $i, retrying..."
-              git reset --soft HEAD~1  # Undo the commit to retry
-              sleep $((i * 2))  # Exponential backoff
-            fi
-          done
-
-          echo "Failed to push after 5 attempts, giving up"
-          exit 1
-
-      - name: Comment on PR with badge preview
-        if: github.event_name == 'pull_request'
-        uses: actions/github-script@v7
-        with:
-          script: |
-            const badges = {
-              build: '${{ steps.generate_badges.outputs.build_badge }}',
-              version: '${{ steps.generate_badges.outputs.version_badge }}',
-              coverage: '${{ steps.generate_badges.outputs.coverage_badge }}',
-              license: '${{ steps.generate_badges.outputs.license_badge }}',
-              stars: '${{ steps.generate_badges.outputs.stars_badge }}'
-            };
-
-            let comment = '## 🏷️ Badge Preview\n\n';
-            comment += 'The following badges will be updated in your README:\n\n';
-
-            Object.entries(badges).forEach(([name, url]) => {
-              comment += `**${name.charAt(0).toUpperCase() + name.slice(1)}**: ![${name}](${url})\n\n`;
-            });
-
-            if ('${{ steps.update_readme.outputs.changed }}' === 'true') {
-              comment += '✅ **README will be updated** when this PR is merged.\n';
-            } else {
-              comment += 'ℹ️ No badge changes detected.\n';
-            }
-
-            comment += '\n---\n*Badges will be automatically updated on merge to main branch.*';
-
-            // Find existing comment
-            const { data: comments } = await github.rest.issues.listComments({
-              owner: context.repo.owner,
-              repo: context.repo.repo,
-              issue_number: context.issue.number,
-            });
-
-            const existingComment = comments.find(c => 
-              c.body.includes('🏷️ Badge Preview')
-            );
-
-            if (existingComment) {
-              await github.rest.issues.updateComment({
-                owner: context.repo.owner,
-                repo: context.repo.repo,
-                comment_id: existingComment.id,
-                body: comment
-              });
-            } else {
-              await github.rest.issues.createComment({
-                owner: context.repo.owner,
-                repo: context.repo.repo,
-                issue_number: context.issue.number,
-                body: comment
-              });
-            }
-
-      - name: Set job summary
-        run: |
-          echo "# 🏷️ Badge Update Summary" >> $GITHUB_STEP_SUMMARY
-          echo "" >> $GITHUB_STEP_SUMMARY
-          echo "## Repository Stats" >> $GITHUB_STEP_SUMMARY
-          echo "- ⭐ **Stars**: ${{ steps.repo_stats.outputs.stars }}" >> $GITHUB_STEP_SUMMARY
-          echo "- 🍴 **Forks**: ${{ steps.repo_stats.outputs.forks }}" >> $GITHUB_STEP_SUMMARY
-          echo "- 🐛 **Issues**: ${{ steps.repo_stats.outputs.issues }}" >> $GITHUB_STEP_SUMMARY
-          echo "- 💾 **Commits**: ${{ steps.repo_stats.outputs.commit_count }}" >> $GITHUB_STEP_SUMMARY
-          echo "- 👥 **Contributors**: ${{ steps.repo_stats.outputs.contributors }}" >> $GITHUB_STEP_SUMMARY
-          echo "" >> $GITHUB_STEP_SUMMARY
-          echo "## Generated Badges" >> $GITHUB_STEP_SUMMARY
-          echo "- 🚀 Build Status: ${{ steps.workflow_status.outputs.latest_workflow_status }}" >> $GITHUB_STEP_SUMMARY
-          echo "- 📊 Coverage: ${{ steps.test_coverage.outputs.coverage_percent }}%" >> $GITHUB_STEP_SUMMARY
-          echo "- 🏷️ Version: ${{ steps.repo_info.outputs.latest_release }}" >> $GITHUB_STEP_SUMMARY
-          echo "- 🔤 Language: ${{ steps.repo_stats.outputs.language }}" >> $GITHUB_STEP_SUMMARY
-          echo "" >> $GITHUB_STEP_SUMMARY
-          if [ "${{ steps.update_readme.outputs.changed }}" = "true" ]; then
-            echo "✅ **README badges updated successfully!**" >> $GITHUB_STEP_SUMMARY
-          else
-            echo "ℹ️ **No badge updates needed**" >> $GITHUB_STEP_SUMMARY
+          if git diff --quiet README.md; then
+            echo "No changes to commit"
+            exit 0
           fi
+
+          git add README.md
+          git commit -m "Update README badges"
+          git push
