@@ -15,11 +15,11 @@ export interface ButtonProps extends React.ComponentProps<'button'> {
 export function Button({
   className,
   variant = 'default',
-  size = 'sm',
+  size = 'lg',
   ...props
 }: ButtonProps) {
   return (
-    <ShadcnButton
+    <ShadcnButtondddddddd
       variant={variant}
       size={size}
       className={className}
