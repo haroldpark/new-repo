@@ -2,8 +2,8 @@ name: Dependency Audit
 
 on:
   pull_request:
-  schedule:
-    - cron: '0 2 * * 1' # every Monday at 2 AM "minute hour day_of_month month day_of_week"
+  # schedule:
+  #   - cron: '0 2 * * 1' # every Monday at 2 AM "minute hour day_of_month month day_of_week"
 
 jobs:
   audit:

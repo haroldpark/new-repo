@@ -3,9 +3,9 @@ name: Update README Badges
 on:
   push:
     branches: [main]
-  schedule:
-    # Update badges daily at 6 AM UTC
-    - cron: '0 6 * * *'
+  # schedule:
+  #   # Update badges daily at 6 AM UTC
+  #   - cron: '0 6 * * *'
   workflow_dispatch:
 
 jobs:
@@ -13,14 +13,9 @@ jobs:
     runs-on: ubuntu-latest
     permissions:
       contents: write
-<<<<<<< Updated upstream
 
     steps:
       - name: Checkout repo
-=======
-    steps:
-      - name: Checkout
->>>>>>> Stashed changes
         uses: actions/checkout@v4
 
       - name: Update README badges
