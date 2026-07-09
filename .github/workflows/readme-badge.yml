@@ -5,7 +5,7 @@ on:
     branches: [main]
   schedule:
     # Update badges daily at 6 AM UTC
-    - cron: '0 6 * * *'
+    # - cron: '0 6 * * *'
   workflow_dispatch:
 
 jobs:
@@ -13,14 +13,9 @@ jobs:
     runs-on: ubuntu-latest
     permissions:
       contents: write
-<<<<<<< Updated upstream
 
     steps:
       - name: Checkout repo
-=======
-    steps:
-      - name: Checkout
->>>>>>> Stashed changes
         uses: actions/checkout@v4
 
       - name: Update README badges
@@ -55,102 +50,6 @@ jobs:
               sed -i '1r badges.md' README.md
             fi
           else
-<<<<<<< Updated upstream
-            COVERAGE_BADGE="${SHIELDS_BASE}/badge/coverage-unknown-lightgrey?style=flat-square"
-          fi
-
-          # GitHub stats badges
-          STARS_BADGE="${SHIELDS_BASE}/github/stars/${REPO_FULL_NAME}?style=flat-square&logo=github"
-          FORKS_BADGE="${SHIELDS_BASE}/github/forks/${REPO_FULL_NAME}?style=flat-square&logo=github"
-          ISSUES_BADGE="${SHIELDS_BASE}/github/issues/${REPO_FULL_NAME}?style=flat-square&logo=github"
-
-          # Node.js version badge (if applicable)
-          if [ "${{ steps.project_analysis.outputs.has_package_json }}" = "true" ]; then
-            NODE_VERSION="${{ steps.project_analysis.outputs.node_version }}"
-            NODE_BADGE="${SHIELDS_BASE}/badge/node-${NODE_VERSION}-green?style=flat-square&logo=node.js"
-          fi
-
-          # NPM badge (if published)
-          if [ "${{ steps.project_analysis.outputs.npm_exists }}" = "true" ]; then
-            PKG_NAME="${{ steps.project_analysis.outputs.package_name }}"
-            NPM_BADGE="${SHIELDS_BASE}/npm/v/${PKG_NAME}?style=flat-square&logo=npm"
-            NPM_DOWNLOADS="${SHIELDS_BASE}/npm/dm/${PKG_NAME}?style=flat-square&logo=npm"
-          fi
-
-          # Docker badge (if has Dockerfile)
-          if [ "${{ steps.project_analysis.outputs.has_dockerfile }}" = "true" ]; then
-            DOCKER_BADGE="${SHIELDS_BASE}/badge/docker-available-blue?style=flat-square&logo=docker"
-          fi
-
-          # Activity badges
-          LAST_COMMIT_BADGE="${SHIELDS_BASE}/github/last-commit/${REPO_FULL_NAME}?style=flat-square&logo=github"
-          CONTRIBUTORS_BADGE="${SHIELDS_BASE}/github/contributors/${REPO_FULL_NAME}?style=flat-square&logo=github"
-
-          # Save all badge URLs to outputs
-          cat >> $GITHUB_OUTPUT << EOF
-          build_badge=$BUILD_BADGE
-          version_badge=$VERSION_BADGE
-          license_badge=$LICENSE_BADGE
-          language_badge=$LANGUAGE_BADGE
-          coverage_badge=$COVERAGE_BADGE
-          stars_badge=$STARS_BADGE
-          forks_badge=$FORKS_BADGE
-          issues_badge=$ISSUES_BADGE
-          last_commit_badge=$LAST_COMMIT_BADGE
-          contributors_badge=$CONTRIBUTORS_BADGE
-          EOF
-
-          # Optional badges
-          if [ -n "$NODE_BADGE" ]; then
-            echo "node_badge=$NODE_BADGE" >> $GITHUB_OUTPUT
-          fi
-          if [ -n "$NPM_BADGE" ]; then
-            echo "npm_badge=$NPM_BADGE" >> $GITHUB_OUTPUT
-            echo "npm_downloads=$NPM_DOWNLOADS" >> $GITHUB_OUTPUT
-          fi
-          if [ -n "$DOCKER_BADGE" ]; then
-            echo "docker_badge=$DOCKER_BADGE" >> $GITHUB_OUTPUT
-          fi
-
-      - name: Update README with badges
-        run: |
-          set -euo pipefail
-
-          REPO="haroldpark/new-repo"
-
-          # Create badge section (placeholders for repo)
-          cat > badges.md <<'EOF'
-          <!-- BADGES-START -->
-          ![Build](https://img.shields.io/github/actions/workflow/status/REPO_PLACEHOLDER/build-test-deploy.yml?style=flat-square)
-          ![Version](https://img.shields.io/github/v/release/REPO_PLACEHOLDER?style=flat-square)
-          ![License](https://img.shields.io/github/license/REPO_PLACEHOLDER?style=flat-square)
-          ![Stars](https://img.shields.io/github/stars/REPO_PLACEHOLDER?style=flat-square)
-          ![Issues](https://img.shields.io/github/issues/REPO_PLACEHOLDER?style=flat-square)
-          ![Last Commit](https://img.shields.io/github/last-commit/REPO_PLACEHOLDER?style=flat-square)
-          ![Repo Size](https://img.shields.io/github/repo-size/REPO_PLACEHOLDER?style=flat-square)
-          <!-- BADGES-END -->
-          EOF
-
-          cat > .github/badges/build.json << EOF
-          {
-            "schemaVersion": 1,
-            "label": "build",
-            "message": "${{ steps.workflow_status.outputs.latest_workflow_status }}",
-            "color": "$([ '${{ steps.workflow_status.outputs.latest_workflow_status }}' = 'success' ] && echo 'green' || echo 'red')"
-          }
-          EOF
-
-          cat > .github/badges/version.json << EOF
-          {
-            "schemaVersion": 1,
-            "label": "version", 
-            "message": "${{ steps.repo_info.outputs.latest_release }}",
-            "color": "blue"
-          }
-          EOF
-
-      - name: Commit badge updates
-=======
             # Create new README with badges
             echo "# ${{ github.event.repository.name }}" > README.md
             echo "" >> README.md
@@ -161,7 +60,6 @@ jobs:
           rm badges.md
 
       - name: Commit changes
->>>>>>> Stashed changes
         run: |
           git config --local user.email "action@github.com"
           git config --local user.name "GitHub Action"

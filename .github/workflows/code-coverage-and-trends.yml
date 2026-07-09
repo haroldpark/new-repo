@@ -49,9 +49,9 @@ on:
     branches: [main, develop, harold]
   pull_request:
     branches: [main, develop, harold]
-  schedule:
-    # Generate daily coverage reports at 2 AM UTC
-    - cron: '0 2 * * *'
+  # schedule:
+  # Generate daily coverage reports at 2 AM UTC
+  # - cron: '0 2 * * *'
   workflow_dispatch:
     inputs:
       force_baseline:
